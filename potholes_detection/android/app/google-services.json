@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "1037829556370",
+    "project_id": "jusense1",
+    "storage_bucket": "jusense1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1037829556370:android:5a7694d755ab3b97ec3e4b",
+        "android_client_info": {
+          "package_name": "com.jusense.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1037829556370-s5ll3krkmj346efvf073lb1q4q5se9uk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_KpiO2F9W_Db4A4MJxgNtycynT8ZpkiI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1037829556370-s5ll3krkmj346efvf073lb1q4q5se9uk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1037829556370:android:f3a75a29fa4d7349ec3e4b",
+        "android_client_info": {
+          "package_name": "com.jusense_potholes.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1037829556370-s5ll3krkmj346efvf073lb1q4q5se9uk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_KpiO2F9W_Db4A4MJxgNtycynT8ZpkiI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1037829556370-s5ll3krkmj346efvf073lb1q4q5se9uk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
