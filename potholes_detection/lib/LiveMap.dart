@@ -123,7 +123,7 @@ class _LiveMapState extends State<LiveMap> {
 
     for (LatLng l in marker_positions.keys) {
       final Uint8List markerIcond =
-          await getBytesFromCanvas(70, marker_positions[l]!.split(", "));
+          await getBytesFromCanvas(50, marker_positions[l]!.split(", "));
       Marker m = new Marker(
         markerId: MarkerId(l.latitude.toString() + l.longitude.toString()),
         icon: BitmapDescriptor.fromBytes(markerIcond),
@@ -204,6 +204,7 @@ class _LiveMapState extends State<LiveMap> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: (){
+          setState(() {});
           showModalBottomSheet(
             context: context,
             builder: (BuildContext context) {
@@ -290,6 +291,11 @@ Future<Uint8List> getBytesFromCanvas(int height, List<String> anomalies) async {
   final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
   final Canvas canvas = Canvas(pictureRecorder);
   final Paint paint = Paint()..color = Colors.lightBlueAccent;
+  final Paint borderPaint = Paint()
+    ..color = Colors.black
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 5
+    ..strokeCap = StrokeCap.round;
   final Radius radius = Radius.circular(8.0);
   canvas.drawRRect(
       RRect.fromRectAndCorners(
@@ -301,9 +307,20 @@ Future<Uint8List> getBytesFromCanvas(int height, List<String> anomalies) async {
         bottomRight: radius,
       ),
       paint);
+  canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(0.0, 0.0, (height * anomalies.length + 16).toDouble(),
+            (height + 16).toDouble()),
+        topLeft: radius,
+        topRight: radius,
+        bottomLeft: radius,
+        bottomRight: radius,
+      ),
+      borderPaint);
   final Paint linePaint = Paint()
-    ..color = Colors.lightBlueAccent
-    ..strokeWidth = 10;
+    ..color = Colors.black
+    ..strokeCap = StrokeCap.round
+    ..strokeWidth = 4;
   canvas.drawLine(Offset((height / 2 + 8.0), (height + 16).toDouble()),
       Offset((height / 2 + 8.0), height * 2.0 + 16), linePaint);
 
