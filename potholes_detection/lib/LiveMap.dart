@@ -198,6 +198,8 @@ class _LiveMapState extends State<LiveMap> {
                     Factory<TapGestureRecognizer>(() => TapGestureRecognizer()))
                 ..add(Factory<VerticalDragGestureRecognizer>(
                     () => VerticalDragGestureRecognizer())),
+              myLocationButtonEnabled: true,
+              myLocationEnabled: true,
             ),
           ],
         ),
