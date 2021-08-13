@@ -51,7 +51,9 @@ class _UploadImageState extends State<UploadImage> {
     });
   }
 
-  Future getImage(bool gallery) async {
+  Future getImage(bool gallery, BuildContext context) async {
+    if (!await _getKey(context)) return;
+
     ImagePicker picker = ImagePicker();
     PickedFile? pickedFile;
     // Let user select photo from gallery
@@ -77,7 +79,9 @@ class _UploadImageState extends State<UploadImage> {
     });
   }
 
-  Future getVideo(bool gallery) async {
+  Future getVideo(bool gallery, BuildContext context) async {
+    if (!await _getKey(context)) return;
+
     ImagePicker picker = ImagePicker();
     PickedFile? pickedFile;
     // Let user select photo from gallery
@@ -135,6 +139,52 @@ class _UploadImageState extends State<UploadImage> {
     });
   }
 
+  Future<bool> _getKey(BuildContext context) async {
+    bool key = false, isBlank = true;
+
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Input the key'),
+            content: TextField(
+              onChanged: (String value) {
+                this.setState(() {
+                  url = "https://$value.ngrok.io/predict";
+                  isBlank = (value == "");
+                });
+              },
+              decoration: InputDecoration(
+                  hintText: "KEY", helperText: "KEY can not be empty"),
+            ),
+            actions: <Widget>[
+              ElevatedButton(
+                child: Text('CANCEL'),
+                style: ElevatedButton.styleFrom(primary: Colors.red),
+                onPressed: () {
+                  key = false;
+                  setState(() {
+                    Navigator.pop(context);
+                  });
+                },
+              ),
+              ElevatedButton(
+                child: Text('OK'),
+                onPressed: () {
+                  key = true;
+                  if (!isBlank) {
+                    setState(() {
+                      Navigator.pop(context);
+                    });
+                  }
+                },
+              ),
+            ],
+          );
+        });
+    return key;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,56 +197,24 @@ class _UploadImageState extends State<UploadImage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'KEY',
-                    ),
-                    onChanged: (String value) {
-                      this.setState(() {
-                        url = "https://$value.ngrok.io/predict";
-                      });
-                    },
+
+                ElevatedButton(
+                  onPressed: () {
+                    getImage(false, context);
+                  },
+                  child: Row(
+                    children: [
+                      Icon(Icons.image),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5.0),
+                        child: Text("Image"),
+                      )
+                    ],
                   ),
-                ),
-                ButtonBar(
-                  alignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        getVideo(false);
-                      },
-                      child: Row(
-                        children: [
-                          Icon(Icons.videocam),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 5.0),
-                            child: Text("Video"),
-                          )
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        getImage(false);
-                      },
-                      child: Row(
-                        children: [
-                          Icon(Icons.image),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 5.0),
-                            child: Text("Image"),
-                          )
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
                 (_images.length == 0)
                     ? Center(
-                        child: Text("Select Image to upload"),
+                        child: Image.asset("assets/taking_picture.png"),
                       )
                     : Column(
                         children: [
@@ -208,8 +226,26 @@ class _UploadImageState extends State<UploadImage> {
                             )
                         ],
                       ),
+
+                ElevatedButton(
+                  onPressed: () {
+                    getVideo(false, context);
+                  },
+                  child: Row(
+                    children: [
+                      Icon(Icons.videocam),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5.0),
+                        child: Text("Video"),
+                      )
+                    ],
+                  ),
+                ),
                 _videoes == null
-                    ? Container()
+                    ? Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: Image.asset("assets/video_taking.png"),
+                      )
                     : UploadIndividualVideo(
                         imageFile: _videoes!,
                         delete: deleteImage,
@@ -217,15 +253,18 @@ class _UploadImageState extends State<UploadImage> {
                         path: path,
                         processedVideoUrl: widget.processedVideoUrl,
                       ),
-                VideoCompress.isCompressing ? Center(child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(),
-                      Text("Compressing the video"),
-                    ],
-                  ),
-                )) : Container(),
+                VideoCompress.isCompressing
+                    ? Center(
+                        child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            CircularProgressIndicator(),
+                            Text("Compressing the video"),
+                          ],
+                        ),
+                      ))
+                    : Container(),
               ],
             ),
           ),

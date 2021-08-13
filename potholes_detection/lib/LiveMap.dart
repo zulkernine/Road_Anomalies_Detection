@@ -123,7 +123,7 @@ class _LiveMapState extends State<LiveMap> {
 
     for (LatLng l in marker_positions.keys) {
       final Uint8List markerIcond =
-          await getBytesFromCanvas(50, marker_positions[l]!.split(", "));
+          await getBytesFromCanvas(40, marker_positions[l]!.split(", "));
       Marker m = new Marker(
         markerId: MarkerId(l.latitude.toString() + l.longitude.toString()),
         icon: BitmapDescriptor.fromBytes(markerIcond),
@@ -324,7 +324,7 @@ Future<Uint8List> getBytesFromCanvas(int height, List<String> anomalies) async {
     ..strokeCap = StrokeCap.round
     ..strokeWidth = 4;
   canvas.drawLine(Offset((height / 2 + 8.0), (height + 16).toDouble()),
-      Offset((height / 2 + 8.0), height * 2.0 + 16), linePaint);
+      Offset((height / 2 + 8.0), height * 3.0 + 16), linePaint);
 
   int i = 0;
   for (String anomaly in anomalies) {
