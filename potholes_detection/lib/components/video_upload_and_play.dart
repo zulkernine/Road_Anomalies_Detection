@@ -95,7 +95,9 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
           widget.path,
           processedData,
           widget.imageFile.lastModifiedSync().millisecondsSinceEpoch -
-              (controller!.value.duration.inMilliseconds));
+              (controller!.value.duration.inMilliseconds),
+          downloadUrl
+      );
     } else {
       print("Backend processing error occured");
       showDialog<String>(

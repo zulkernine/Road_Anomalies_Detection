@@ -51,9 +51,7 @@ class _UploadImageState extends State<UploadImage> {
     });
   }
 
-  Future getImage(bool gallery, BuildContext context) async {
-    if (!await _getKey(context)) return;
-
+  Future getImage(bool gallery) async {
     ImagePicker picker = ImagePicker();
     PickedFile? pickedFile;
     // Let user select photo from gallery
@@ -79,9 +77,7 @@ class _UploadImageState extends State<UploadImage> {
     });
   }
 
-  Future getVideo(bool gallery, BuildContext context) async {
-    if (!await _getKey(context)) return;
-
+  Future getVideo(bool gallery) async {
     ImagePicker picker = ImagePicker();
     PickedFile? pickedFile;
     // Let user select photo from gallery
@@ -139,7 +135,7 @@ class _UploadImageState extends State<UploadImage> {
     });
   }
 
-  Future<bool> _getKey(BuildContext context) async {
+  Future<bool> _getKey(BuildContext context, {bool video = false}) async {
     bool key = false, isBlank = true;
 
     showDialog(
@@ -176,6 +172,10 @@ class _UploadImageState extends State<UploadImage> {
                     setState(() {
                       Navigator.pop(context);
                     });
+                    if (video)
+                      getVideo(false);
+                    else
+                      getImage(false);
                   }
                 },
               ),
@@ -188,34 +188,87 @@ class _UploadImageState extends State<UploadImage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.white70,
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          title: Text("Upload Image"),
-        ),
-        body: SafeArea(
+      backgroundColor: Colors.white70,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text("Share anomalies' location"),
+      ),
+      body: SafeArea(
+        child: Container(
+          constraints: BoxConstraints.expand(),
+          decoration: BoxDecoration(
+              image: DecorationImage(
+            image: AssetImage("assets/background_road.png"),
+            fit: BoxFit.cover,
+          )),
           child: SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-
-                ElevatedButton(
-                  onPressed: () {
-                    getImage(false, context);
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.image),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 5.0),
-                        child: Text("Image"),
-                      )
-                    ],
-                  ),
+                SizedBox(
+                  height: 100,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: Center(
+                        child: InkWell(
+                          onTap: () {
+                            _getKey(context);
+                          },
+                          child: Container(
+                            height: 100,
+                            width: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.lightBlue.withOpacity(0.8),
+                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.image,color: Colors.white,),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 5.0),
+                                  child: Text("Image",style: TextStyle(color: Colors.white),),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Image.asset("assets/taking_picture.png"),
+                      flex: 1,
+                    )
+                  ],
                 ),
                 (_images.length == 0)
-                    ? Center(
-                        child: Image.asset("assets/taking_picture.png"),
-                      )
+                    ? Padding(
+                      padding: const EdgeInsets.only(bottom:100.0),
+                      child: Center(
+                          child: Text(
+                            "Take image of anomalies to share",
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 20,
+                              shadows: <Shadow>[
+                                Shadow(
+                                  offset: Offset(0.0, 0.0),
+                                  blurRadius: 3.0,
+                                  color: Color.fromARGB(255, 0, 0, 0),
+                                ),
+                                Shadow(
+                                  offset: Offset(0.0, 0.0),
+                                  blurRadius: 8.0,
+                                  color: Color.fromARGB(125, 0, 0, 255),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    )
                     : Column(
                         children: [
                           for (var img in _images)
@@ -226,26 +279,65 @@ class _UploadImageState extends State<UploadImage> {
                             )
                         ],
                       ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Image.asset("assets/video_taking.png"),
+                      flex: 1,
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Center(
+                        child: InkWell(
+                          onTap: () {
+                            _getKey(context, video: true);
+                          },
+                          child: Container(
+                            height: 100,
+                            width: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.lightBlue.withOpacity(0.8),
+                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.videocam,color: Colors.white,),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 5.0),
+                                  child: Text("Record",style: TextStyle(color: Colors.white),),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
 
-                ElevatedButton(
-                  onPressed: () {
-                    getVideo(false, context);
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.videocam),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 5.0),
-                        child: Text("Video"),
-                      )
-                    ],
-                  ),
+                  ],
                 ),
                 _videoes == null
-                    ? Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: Image.asset("assets/video_taking.png"),
-                      )
+                    ? Center(
+                      child: Text(
+                        "Capture video of anomalies to share",
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 20,
+                          shadows: <Shadow>[
+                            Shadow(
+                              offset: Offset(0.0, 0.0),
+                              blurRadius: 3.0,
+                              color: Color.fromARGB(255, 0, 0, 0),
+                            ),
+                            Shadow(
+                              offset: Offset(0.0, 0.0),
+                              blurRadius: 8.0,
+                              color: Color.fromARGB(125, 0, 0, 255),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
                     : UploadIndividualVideo(
                         imageFile: _videoes!,
                         delete: deleteImage,
@@ -265,9 +357,12 @@ class _UploadImageState extends State<UploadImage> {
                         ),
                       ))
                     : Container(),
+                SizedBox(height: 100,)
               ],
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
 }

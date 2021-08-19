@@ -71,8 +71,10 @@ class _UploadIndividualImageState extends State<UploadIndividualImage> {
         // labels = body["labels"] as List<String>;
       });
       updateAnomaly(
-          location: LatLng(locationData!.latitude!, locationData!.longitude!),
-          anomaliesName: labels.toSet());
+        location: LatLng(locationData!.latitude!, locationData!.longitude!),
+        anomaliesName: labels.toSet(),
+        url: downloadUrl,
+      );
     } else {
       print("Backend processing error occured");
       showDialog<String>(

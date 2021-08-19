@@ -49,39 +49,78 @@ class Anomalies {
 
 }
 
+class Anomaly{
+  LatLng position = LatLng(0, 0);
+  Set<String> names = Set();
+  String sourceUrl = "";
+  String sourceType = "image"; // or video
 
-Future<void> updateAnomaly({required LatLng location,required Set<String> anomaliesName}) async {
-  Anomalies anomalies = Anomalies();
-  for(String string in anomaliesName){
-    switch(string){
-      case "wet pothole" : anomalies.wet_potholes.add(location);break;
-      case "dry pothole" : anomalies.dry_potholes.add(location); break;
-      case "manhole" : anomalies.manholes.add(location); break;
-      case "speed breaker" : anomalies.speed_breaker.add(location); break;
-      case "uneven surface": anomalies.uneven_surface.add(location); break;
-    }
+  Anomaly(LatLng pos,Set<String>names,String url, {String type="image"}){
+    position = pos;
+    this.names.addAll(names);
+    sourceUrl = url;
+    sourceType = type;
   }
 
-  await updateFirestoreLocations(anomalies);
+  Map<String, dynamic> toJson(){
+    return {
+      "position": jsonEncode(position),
+      "names": jsonEncode(names.toList()),
+      "sourceUrl" : sourceUrl,
+      "sourceType" : sourceType
+    };
+  }
+
+  Anomaly.fromJson(Map<String, dynamic> data){
+    var coordinates = jsonDecode(data["position"]);
+    position = LatLng(coordinates.first, coordinates.last);
+    var types = jsonDecode(data["names"]);
+    names.addAll([
+      for(var s in types) s.toString()
+    ]);
+
+    sourceUrl = data["sourceUrl"].toString();
+    sourceType = data["sourceType"].toString();
+  }
 }
 
-Future<void> updateAnnomalyLocations(Map<int, LatLng> path,var result,int startingTime)async{
+
+Future<void> updateAnomaly({required LatLng location,required Set<String> anomaliesName,required url}) async {
+  Anomaly anomaly = Anomaly(location, anomaliesName, url);
+  print("Updating firestore");
+  print(anomaly.toJson());
+  CollectionReference ref = FirebaseFirestore.instance
+      .collection("road_anomalies2");
+  await ref.doc(location.longitude.toString()+location.latitude.toString()).set(
+      anomaly.toJson()
+  );
+  print("Completed updating firestore");
+
+  // FirebaseFirestore.instance.runTransaction((transaction) async {
+  //   DocumentSnapshot snapshot = await transaction.get(ref);
+  //   anomalies
+  //       .merge(Anomalies.fromJson(snapshot.data() as Map<String, dynamic>));
+  //   transaction.update(snapshot.reference, anomalies.toJson());
+  //
+  // });
+}
+
+Future<void> updateAnnomalyLocations(Map<int, LatLng> path,var result,int startingTime,String videoUrl)async{
   var lb = result['labels'] as Map;
   Anomalies anomalies = Anomalies();
   for(var e in lb.entries){
     if((e.value as List).isNotEmpty){
-      for(var s in e.value ){
-        //TODO compute location using key
-        LatLng location = path[closestKey(path.keys.toList(), startingTime + (double.parse(e.key as String) * 1000).toInt())]!;
+      LatLng location = path[closestKey(path.keys.toList(), startingTime + (double.parse(e.key as String) * 1000).toInt())]!;
+      Anomaly anomaly = Anomaly(location,<String>[ for(var s in e.value ) s.toString() ].toSet(), videoUrl,type: "video");
 
-        switch(s as String){
-          case "wet pothole" : anomalies.wet_potholes.add(location);break;
-          case "dry pothole" : anomalies.dry_potholes.add(location); break;
-          case "manhole" : anomalies.manholes.add(location); break;
-          case "speed breaker" : anomalies.speed_breaker.add(location); break;
-          case "uneven surface": anomalies.uneven_surface.add(location); break;
-        }
-      }
+      print("Updating firestore");
+      print(anomaly.toJson());
+      CollectionReference ref = FirebaseFirestore.instance
+          .collection("road_anomalies2");
+      await ref.doc(location.longitude.toString()+location.latitude.toString()).set(
+          anomaly.toJson()
+      );
+      print("Completed updating firestore");
     }
   }
 

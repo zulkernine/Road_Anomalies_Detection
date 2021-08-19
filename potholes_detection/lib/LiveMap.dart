@@ -23,9 +23,10 @@ class LiveMap extends StatefulWidget {
 class _LiveMapState extends State<LiveMap> {
   // Completer<GoogleMapController> mapController = Completer();
   final Set<Marker> _markers = <Marker>{};
-  Stream<DocumentSnapshot>? stream;
+  Stream<QuerySnapshot<Map<String, dynamic>>>? stream;
 
   Anomalies anomalies = Anomalies();
+  Map<LatLng, Anomaly> marker_positions = Map();
 
   static const LatLng _center =
       const LatLng(22.496695803485945, 88.37183921981813);
@@ -33,12 +34,13 @@ class _LiveMapState extends State<LiveMap> {
   @override
   void initState() {
     super.initState();
-    stream = FirebaseFirestore.instance
-        .collection("road_anomalies")
-        .doc("anomalies")
-        .snapshots();
+    stream =
+        FirebaseFirestore.instance.collection("road_anomalies2").snapshots();
     stream?.listen((event) {
-      anomalies.merge(Anomalies.fromJson(event.data() as Map<String, dynamic>));
+      event.docs.forEach((element) {
+        Anomaly anomaly = Anomaly.fromJson(element.data());
+        marker_positions[anomaly.position] = anomaly;
+      });
       setMarkers();
       print("Listening to stream firestore");
       print(anomalies.toJson());
@@ -52,26 +54,37 @@ class _LiveMapState extends State<LiveMap> {
   }
 
   //filler function for test
-  // void filler() {
-  //   anomalies.uneven_surface.addAll([
-  //     LatLng(22.498129, 88.370160),
-  //   ]);
-  //
-  //   anomalies.dry_potholes.addAll([
-  //     LatLng(22.497609030317413, 88.3714513907height4),
-  //     LatLng(22.496958991006803, 88.37260458159948),
-  //     LatLng(22.49803710331737, 88.37277275526357),
-  //   ]);
-  //
-  //   anomalies.wet_potholes.addAll([
-  //     LatLng(22.498132230484014, 88.37122143902755),
-  //     LatLng(22.49860469437682, 88.3717843059849),
-  //   ]);
-  //
-  //   anomalies.speed_breaker.addAll([
-  //     LatLng(22.496404130715142, 88.37194268794019),
-  //   ]);
-  // }
+  void filler() async {
+    Anomaly anomaly = Anomaly(
+        LatLng(22.497609030317413, 88.3714513907),
+        <String>["Wet pothole", "Uneven surface"].toSet(),
+        "https://picsum.photos/id/237/200/300");
+
+    print("Updating firestore");
+    print(anomaly.toJson());
+    CollectionReference ref =
+        FirebaseFirestore.instance.collection("road_anomalies2");
+    await ref
+        .doc(anomaly.position.longitude.toString() +
+            anomaly.position.latitude.toString())
+        .set(anomaly.toJson());
+    print("Completed updating firestore");
+
+    anomaly = Anomaly(
+        LatLng(22.496695803485945, 88.37183921981813),
+        <String>[
+          "Dry pothole",
+        ].toSet(),
+        "https://picsum.photos/id/410/200/300");
+
+    print("Updating firestore");
+    print(anomaly.toJson());
+    await ref
+        .doc(anomaly.position.longitude.toString() +
+            anomaly.position.latitude.toString())
+        .set(anomaly.toJson());
+    print("Completed updating firestore");
+  }
 
   void _onMapCreated(GoogleMapController controller) {
     // setState(() {
@@ -80,50 +93,9 @@ class _LiveMapState extends State<LiveMap> {
   }
 
   void setMarkers() async {
-    Map<LatLng, String> marker_positions = Map();
-    for (LatLng l in anomalies.wet_potholes) {
-      if (marker_positions.containsKey(l)) {
-        marker_positions[l] = "${marker_positions[l]}, Wet pothole";
-      } else {
-        marker_positions[l] = "Wet pothole";
-      }
-    }
-
-    for (LatLng l in anomalies.uneven_surface) {
-      if (marker_positions.containsKey(l)) {
-        marker_positions[l] = "${marker_positions[l]}, Uneven surface";
-      } else {
-        marker_positions[l] = "Uneven surface";
-      }
-    }
-
-    for (LatLng l in anomalies.speed_breaker) {
-      if (marker_positions.containsKey(l)) {
-        marker_positions[l] = "${marker_positions[l]}, Speed breaker";
-      } else {
-        marker_positions[l] = "Speed breaker";
-      }
-    }
-
-    for (LatLng l in anomalies.manholes) {
-      if (marker_positions.containsKey(l)) {
-        marker_positions[l] = "${marker_positions[l]}, Manholes";
-      } else {
-        marker_positions[l] = "Manholes";
-      }
-    }
-
-    for (LatLng l in anomalies.dry_potholes) {
-      if (marker_positions.containsKey(l)) {
-        marker_positions[l] = "${marker_positions[l]}, Dry pothole";
-      } else {
-        marker_positions[l] = "Dry pothole";
-      }
-    }
-
     for (LatLng l in marker_positions.keys) {
       final Uint8List markerIcond =
-          await getBytesFromCanvas(40, marker_positions[l]!.split(", "));
+          await getBytesFromCanvas(40, marker_positions[l]!.names);
       Marker m = new Marker(
         markerId: MarkerId(l.latitude.toString() + l.longitude.toString()),
         icon: BitmapDescriptor.fromBytes(markerIcond),
@@ -139,18 +111,39 @@ class _LiveMapState extends State<LiveMap> {
                 return Container(
                   width: MediaQuery.of(context).size.width * 0.90,
                   padding: EdgeInsets.all(20),
-                  margin: EdgeInsets.all(50),
-                  child: Column(
-                    children: [
-                      Text(
-                        "Lat:${l.latitude}  Lon:${l.longitude}",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        "Anomalies: " + marker_positions[l]!,
-                        style: TextStyle(fontSize: 20),
-                      )
-                    ],
+                  margin: EdgeInsets.all(5),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Text(
+                          "Lat:${l.latitude}  Lon:${l.longitude}",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          "Anomalies: " + marker_positions[l]!.names.join(", "),
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        Text(
+                          "You may download the processed " +
+                              marker_positions[l]!.sourceType +
+                              " here: ",
+                          style: TextStyle(fontSize: 10),
+                        ),
+                        SelectableText(
+                          marker_positions[l]!.sourceUrl,
+                          style: TextStyle(color: Colors.blue,fontSize: 20),
+                        ),
+                        if (marker_positions[l]!.sourceType == "image")
+                          Image.network(marker_positions[l]!.sourceUrl,fit: BoxFit.fill,
+                            loadingBuilder:(BuildContext context, Widget child,ImageChunkEvent? loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -205,17 +198,18 @@ class _LiveMapState extends State<LiveMap> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: (){
-          setState(() {});
+        onPressed: () {
+          // filler();
           showModalBottomSheet(
             context: context,
             builder: (BuildContext context) {
               return Container(
                 width: MediaQuery.of(context).size.width * 0.90,
-                padding: EdgeInsets.all(5),
-                margin: EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
+                margin: EdgeInsets.all(5),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -230,47 +224,107 @@ class _LiveMapState extends State<LiveMap> {
                     ),
                     Row(
                       children: [
-                        Expanded(child: Image.asset("assets/dry_pothole.png"),flex: 2,),
-                        Expanded(child: Container(),flex: 1,),
-                        Expanded(child: Text("Dry pothole",style: TextStyle(
-                          fontSize: 20.0,
-                        ),),flex: 8,),
+                        Expanded(
+                          child: Image.asset("assets/dry_pothole.png"),
+                          flex: 2,
+                        ),
+                        Expanded(
+                          child: Container(),
+                          flex: 1,
+                        ),
+                        Expanded(
+                          child: Text(
+                            "Dry pothole",
+                            style: TextStyle(
+                              fontSize: 20.0,
+                            ),
+                          ),
+                          flex: 8,
+                        ),
                       ],
                     ),
                     Row(
                       children: [
-                        Expanded(child: Image.asset("assets/manhole.png"),flex: 2,),
-                        Expanded(child: Container(),flex: 1,),
-                        Expanded(child: Text("Manhole",style: TextStyle(
-                          fontSize: 20.0,
-                        ),),flex: 8,),
+                        Expanded(
+                          child: Image.asset("assets/manhole.png"),
+                          flex: 2,
+                        ),
+                        Expanded(
+                          child: Container(),
+                          flex: 1,
+                        ),
+                        Expanded(
+                          child: Text(
+                            "Manhole",
+                            style: TextStyle(
+                              fontSize: 20.0,
+                            ),
+                          ),
+                          flex: 8,
+                        ),
                       ],
                     ),
                     Row(
                       children: [
-                        Expanded(child: Image.asset("assets/speed_breaker.png"),flex: 2,),
-                        Expanded(child: Container(),flex: 1,),
-                        Expanded(child: Text("Speed breaker",style: TextStyle(
-                          fontSize: 20.0,
-                        ),),flex: 8,),
+                        Expanded(
+                          child: Image.asset("assets/speed_breaker.png"),
+                          flex: 2,
+                        ),
+                        Expanded(
+                          child: Container(),
+                          flex: 1,
+                        ),
+                        Expanded(
+                          child: Text(
+                            "Speed breaker",
+                            style: TextStyle(
+                              fontSize: 20.0,
+                            ),
+                          ),
+                          flex: 8,
+                        ),
                       ],
                     ),
                     Row(
                       children: [
-                        Expanded(child: Image.asset("assets/uneven_surface.png"),flex: 2,),
-                        Expanded(child: Container(),flex: 1,),
-                        Expanded(child: Text("Uneven surface",style: TextStyle(
-                          fontSize: 20.0,
-                        ),),flex: 8,),
+                        Expanded(
+                          child: Image.asset("assets/uneven_surface.png"),
+                          flex: 2,
+                        ),
+                        Expanded(
+                          child: Container(),
+                          flex: 1,
+                        ),
+                        Expanded(
+                          child: Text(
+                            "Uneven surface",
+                            style: TextStyle(
+                              fontSize: 20.0,
+                            ),
+                          ),
+                          flex: 8,
+                        ),
                       ],
                     ),
                     Row(
                       children: [
-                        Expanded(child: Image.asset("assets/wet_pothole.png"),flex: 2,),
-                        Expanded(child: Container(),flex: 1,),
-                        Expanded(child: Text("Wet pothole",style: TextStyle(
-                          fontSize: 20.0,
-                        ),),flex: 8,),
+                        Expanded(
+                          child: Image.asset("assets/wet_pothole.png"),
+                          flex: 2,
+                        ),
+                        Expanded(
+                          child: Container(),
+                          flex: 1,
+                        ),
+                        Expanded(
+                          child: Text(
+                            "Wet pothole",
+                            style: TextStyle(
+                              fontSize: 20.0,
+                            ),
+                          ),
+                          flex: 8,
+                        ),
                       ],
                     ),
                   ],
@@ -289,7 +343,7 @@ class _LiveMapState extends State<LiveMap> {
   }
 }
 
-Future<Uint8List> getBytesFromCanvas(int height, List<String> anomalies) async {
+Future<Uint8List> getBytesFromCanvas(int height, Set<String> anomalies) async {
   final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
   final Canvas canvas = Canvas(pictureRecorder);
   final Paint paint = Paint()..color = Colors.lightBlueAccent;
