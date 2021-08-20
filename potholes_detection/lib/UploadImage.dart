@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:location/location.dart';
 import 'package:potholes_detection/components/video_upload_and_play.dart';
 import 'package:video_compress/video_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
 import 'dart:io';
 
 import './components/image_upload_component.dart';
@@ -31,16 +33,18 @@ class UploadImage extends StatefulWidget {
 
 class _UploadImageState extends State<UploadImage> {
   List<File> _images = [];
-  File? _videoes = null;
+  // File? _videoes = null;
+  List<File> _videoes = [];
   String url = "";
   bool recordingNow = false;
   Map<int, LatLng> path = {};
+  bool splittingVideo = false;
 
   @override
   void initState() {
     super.initState();
     _images = this.widget.images;
-    _videoes = widget.videoes;
+    // _videoes = widget.videoes;
     url = widget.url;
     path = widget.path;
     Location().onLocationChanged.listen((LocationData currentLocation) {
@@ -112,23 +116,77 @@ class _UploadImageState extends State<UploadImage> {
         quality: VideoQuality.LowQuality,
         deleteOrigin: false, // It's false by default
         includeAudio: false,
-        frameRate: 17,
+        frameRate: 30,
       );
     }
 
     setState(() {
-      if (mediaInfo != null) {
-        _videoes = mediaInfo.file;
-      } else {
-        print('No Video selected.');
-      }
+      splittingVideo = true;
     });
+    if (mediaInfo != null) {
+      splitVideo(mediaInfo.file!);
+    } else {
+      print('No Video selected.');
+    }
+    setState(() {
+      splittingVideo = false;
+    });
+  }
+
+  void splitVideo(File _video) async {
+    print(_video.path);
+    String appDocPath = (await getApplicationDocumentsDirectory()).path;
+    DateTime.now().millisecondsSinceEpoch.toString();
+    double frameLength = 5; //Default should be 120s
+
+    final FlutterFFprobe flutterFFprobe = FlutterFFprobe();
+    Map<dynamic, dynamic> videometadata =
+        (await flutterFFprobe.getMediaInformation(_video.path))
+            .getMediaProperties()!;
+    double duration = double.parse(videometadata["duration"]);
+    print("duration: $duration");
+    print("format: ${formatTime(duration.toInt())}");
+
+    for (double i = 0; i < duration - frameLength; i += frameLength) {
+      final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
+      String videoPath = appDocPath +"/"+
+          DateTime.now().millisecondsSinceEpoch.toString() +"-"+
+          i.toString() +
+          ".mp4";
+      print(videoPath);
+      int rc = await _flutterFFmpeg
+          .execute(
+              "-ss ${formatTime(i.toInt())} -i \"${_video.path}\" -to ${formatTime((i + frameLength).toInt())} -c copy $videoPath"
+      );
+      print("FFmpeg process for executionId  exited with rc $rc");
+      if (rc == 0) {
+        setState(() {
+          _videoes.add(File(videoPath));
+        });
+      }
+    }
+
+    final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
+    String videoPath = appDocPath +"/"+
+        DateTime.now().millisecondsSinceEpoch.toString() +
+        ".mp4";
+    print(videoPath);
+    int rc = await _flutterFFmpeg
+        .execute(
+        "-ss ${formatTime((duration - (duration%frameLength)).toInt())} -i \"${_video.path}\" -to ${formatTime((duration).toInt())} -c copy $videoPath"
+    );
+    print("FFmpeg process for executionId  exited with rc $rc");
+    if (rc == 0) {
+      setState(() {
+        _videoes.add(File(videoPath));
+      });
+    }
   }
 
   deleteImage(File img, {bool isVideo = false}) {
     setState(() {
       if (isVideo) {
-        _videoes = null;
+        _videoes.remove(img);
       } else {
         _images.remove(img);
       }
@@ -222,15 +280,22 @@ class _UploadImageState extends State<UploadImage> {
                             width: 100,
                             decoration: BoxDecoration(
                               color: Colors.lightBlue.withOpacity(0.8),
-                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)),
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.image,color: Colors.white,),
+                                Icon(
+                                  Icons.image,
+                                  color: Colors.white,
+                                ),
                                 Padding(
                                   padding: const EdgeInsets.only(left: 5.0),
-                                  child: Text("Image",style: TextStyle(color: Colors.white),),
+                                  child: Text(
+                                    "Image",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 )
                               ],
                             ),
@@ -246,8 +311,8 @@ class _UploadImageState extends State<UploadImage> {
                 ),
                 (_images.length == 0)
                     ? Padding(
-                      padding: const EdgeInsets.only(bottom:100.0),
-                      child: Center(
+                        padding: const EdgeInsets.only(bottom: 100.0),
+                        child: Center(
                           child: Text(
                             "Take image of anomalies to share",
                             style: TextStyle(
@@ -268,7 +333,7 @@ class _UploadImageState extends State<UploadImage> {
                             ),
                           ),
                         ),
-                    )
+                      )
                     : Column(
                         children: [
                           for (var img in _images)
@@ -297,15 +362,22 @@ class _UploadImageState extends State<UploadImage> {
                             width: 100,
                             decoration: BoxDecoration(
                               color: Colors.lightBlue.withOpacity(0.8),
-                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)),
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.videocam,color: Colors.white,),
+                                Icon(
+                                  Icons.videocam,
+                                  color: Colors.white,
+                                ),
                                 Padding(
                                   padding: const EdgeInsets.only(left: 5.0),
-                                  child: Text("Record",style: TextStyle(color: Colors.white),),
+                                  child: Text(
+                                    "Record",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 )
                               ],
                             ),
@@ -313,51 +385,57 @@ class _UploadImageState extends State<UploadImage> {
                         ),
                       ),
                     ),
-
                   ],
                 ),
-                _videoes == null
+                _videoes.isEmpty
                     ? Center(
-                      child: Text(
-                        "Capture video of anomalies to share",
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 20,
-                          shadows: <Shadow>[
-                            Shadow(
-                              offset: Offset(0.0, 0.0),
-                              blurRadius: 3.0,
-                              color: Color.fromARGB(255, 0, 0, 0),
-                            ),
-                            Shadow(
-                              offset: Offset(0.0, 0.0),
-                              blurRadius: 8.0,
-                              color: Color.fromARGB(125, 0, 0, 255),
-                            ),
-                          ],
+                        child: Text(
+                          "Capture video of anomalies to share",
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 20,
+                            shadows: <Shadow>[
+                              Shadow(
+                                offset: Offset(0.0, 0.0),
+                                blurRadius: 3.0,
+                                color: Color.fromARGB(255, 0, 0, 0),
+                              ),
+                              Shadow(
+                                offset: Offset(0.0, 0.0),
+                                blurRadius: 8.0,
+                                color: Color.fromARGB(125, 0, 0, 255),
+                              ),
+                            ],
+                          ),
                         ),
+                      )
+                    : Column(
+                        children: [
+                          for (var v in _videoes)
+                            UploadIndividualVideo(
+                              imageFile: v,
+                              delete: deleteImage,
+                              url: url,
+                              path: path,
+                              // processedVideoUrl: widget.processedVideoUrl,
+                            ),
+                        ],
                       ),
-                    )
-                    : UploadIndividualVideo(
-                        imageFile: _videoes!,
-                        delete: deleteImage,
-                        url: url,
-                        path: path,
-                        processedVideoUrl: widget.processedVideoUrl,
-                      ),
-                VideoCompress.isCompressing
+                VideoCompress.isCompressing || splittingVideo
                     ? Center(
                         child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Column(
                           children: [
                             CircularProgressIndicator(),
-                            Text("Compressing the video"),
+                            Text("Compressing/Processing the video",style: TextStyle(color: Colors.white),),
                           ],
                         ),
                       ))
                     : Container(),
-                SizedBox(height: 100,)
+                SizedBox(
+                  height: 100,
+                )
               ],
             ),
           ),
@@ -365,4 +443,15 @@ class _UploadImageState extends State<UploadImage> {
       ),
     );
   }
+}
+
+String formatTime(int n) {
+  String str = "";
+  str += (n ~/ 3600).toString().padLeft(2, "0");
+  n %= 3600;
+  str += (":" + (n ~/ 60).toString().padLeft(2, "0"));
+  n %= 60;
+  str += (":" + (n).toString().padLeft(2, "0"));
+
+  return str;
 }

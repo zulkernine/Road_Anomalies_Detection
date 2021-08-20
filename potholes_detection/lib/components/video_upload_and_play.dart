@@ -19,13 +19,13 @@ class UploadIndividualVideo extends StatefulWidget {
   final File imageFile;
   final Function delete;
   final String url;
-  final String processedVideoUrl;
+  // final String processedVideoUrl;
   final Map<int, LatLng> path;
   UploadIndividualVideo(
       {required this.imageFile,
       required this.delete,
       this.url = "https://19495e184dba.ngrok.io/predict",
-      required this.processedVideoUrl,
+      // required this.processedVideoUrl,
       required this.path});
 
   @override
