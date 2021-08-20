@@ -178,6 +178,7 @@ class _UploadIndividualImageState extends State<UploadIndividualImage> {
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5),
+          color: Colors.white.withOpacity(0.7),
           border:
               Border.all(color: Color.fromRGBO(223, 225, 229, 1.0), width: 1)),
       child: Column(

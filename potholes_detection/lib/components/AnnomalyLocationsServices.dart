@@ -107,7 +107,6 @@ Future<void> updateAnomaly({required LatLng location,required Set<String> anomal
 
 Future<void> updateAnnomalyLocations(Map<int, LatLng> path,var result,int startingTime,String videoUrl)async{
   var lb = result['labels'] as Map;
-  Anomalies anomalies = Anomalies();
   for(var e in lb.entries){
     if((e.value as List).isNotEmpty){
       LatLng location = path[closestKey(path.keys.toList(), startingTime + (double.parse(e.key as String) * 1000).toInt())]!;
@@ -123,8 +122,6 @@ Future<void> updateAnnomalyLocations(Map<int, LatLng> path,var result,int starti
       print("Completed updating firestore");
     }
   }
-
-  await updateFirestoreLocations(anomalies);
 }
 
 //For internal use only
@@ -146,17 +143,3 @@ int closestKey(List<int> timestamps, int t){
   return timestamps[mid];
 }
 
-Future<void> updateFirestoreLocations(Anomalies anomalies)async{
-  print("Updating firestore");
-  print(anomalies.toJson());
-  FirebaseFirestore.instance.runTransaction((transaction) async {
-    DocumentReference ref = FirebaseFirestore.instance
-        .collection("road_anomalies")
-        .doc("anomalies");
-    DocumentSnapshot snapshot = await transaction.get(ref);
-    anomalies
-        .merge(Anomalies.fromJson(snapshot.data() as Map<String, dynamic>));
-    transaction.update(snapshot.reference, anomalies.toJson());
-    print("Completed updating firestore");
-  });
-}

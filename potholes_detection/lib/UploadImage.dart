@@ -34,7 +34,8 @@ class UploadImage extends StatefulWidget {
 class _UploadImageState extends State<UploadImage> {
   List<File> _images = [];
   // File? _videoes = null;
-  List<File> _videoes = [];
+  // List<File> _videoes = [];
+  List<Map<String,String>> _videoes = <Map<String,String>>[];   // {"filePath":"", "creationTime":"ISO_FORMATE_Date"}
   String url = "";
   bool recordingNow = false;
   Map<int, LatLng> path = {};
@@ -136,8 +137,7 @@ class _UploadImageState extends State<UploadImage> {
   void splitVideo(File _video) async {
     print(_video.path);
     String appDocPath = (await getApplicationDocumentsDirectory()).path;
-    DateTime.now().millisecondsSinceEpoch.toString();
-    double frameLength = 5; //Default should be 120s
+    double frameLength = 120; //Default should be 120s
 
     final FlutterFFprobe flutterFFprobe = FlutterFFprobe();
     Map<dynamic, dynamic> videometadata =
@@ -146,6 +146,8 @@ class _UploadImageState extends State<UploadImage> {
     double duration = double.parse(videometadata["duration"]);
     print("duration: $duration");
     print("format: ${formatTime(duration.toInt())}");
+    print(videometadata);
+    int creationTime = DateTime.parse(videometadata["tags"]["creation_time"]).millisecondsSinceEpoch ;
 
     for (double i = 0; i < duration - frameLength; i += frameLength) {
       final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
@@ -156,14 +158,15 @@ class _UploadImageState extends State<UploadImage> {
       print(videoPath);
       int rc = await _flutterFFmpeg
           .execute(
-              "-ss ${formatTime(i.toInt())} -i \"${_video.path}\" -to ${formatTime((i + frameLength).toInt())} -c copy $videoPath"
+              "-ss ${formatTime(i.toInt())} -i \"${_video.path}\" -t ${formatTime((frameLength).toInt())} -c copy $videoPath"
       );
       print("FFmpeg process for executionId  exited with rc $rc");
       if (rc == 0) {
         setState(() {
-          _videoes.add(File(videoPath));
+          _videoes.add({"filePath":videoPath,"creationTime":(creationTime + i.toInt()).toString()});
         });
       }
+
     }
 
     final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
@@ -173,12 +176,12 @@ class _UploadImageState extends State<UploadImage> {
     print(videoPath);
     int rc = await _flutterFFmpeg
         .execute(
-        "-ss ${formatTime((duration - (duration%frameLength)).toInt())} -i \"${_video.path}\" -to ${formatTime((duration).toInt())} -c copy $videoPath"
+        "-ss ${formatTime((duration - (duration%frameLength)).toInt())} -i \"${_video.path}\" -t ${formatTime(((duration%frameLength)).toInt())} -c copy $videoPath"
     );
     print("FFmpeg process for executionId  exited with rc $rc");
     if (rc == 0) {
       setState(() {
-        _videoes.add(File(videoPath));
+        _videoes.add({"filePath":videoPath,"creationTime":(creationTime + (duration - (duration%frameLength)).toInt()).toString()});
       });
     }
   }
@@ -186,7 +189,7 @@ class _UploadImageState extends State<UploadImage> {
   deleteImage(File img, {bool isVideo = false}) {
     setState(() {
       if (isVideo) {
-        _videoes.remove(img);
+        _videoes.removeWhere((Map<String, String> e) => e["filePath"] == img.path );
       } else {
         _images.remove(img);
       }
@@ -255,85 +258,80 @@ class _UploadImageState extends State<UploadImage> {
         child: Container(
           constraints: BoxConstraints.expand(),
           decoration: BoxDecoration(
+            color: Colors.grey.shade300,
               image: DecorationImage(
-            image: AssetImage("assets/background_road.png"),
-            fit: BoxFit.cover,
+            image: AssetImage("assets/background3.png"),
+            fit: BoxFit.fitHeight,
           )),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  height: 100,
+                  height: 40,
                 ),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Expanded(
-                      flex: 1,
-                      child: Center(
-                        child: InkWell(
-                          onTap: () {
-                            _getKey(context);
-                          },
-                          child: Container(
-                            height: 100,
-                            width: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.lightBlue.withOpacity(0.8),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10)),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                    InkWell(
+                      onTap: () {
+                        _getKey(context);
+                      },
+                      child: Container(
+                        height: 120,
+                        width: 160,
+                        margin: EdgeInsets.only(right: 15),
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius:
+                              BorderRadius.all(Radius.circular(10)),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(
-                                  Icons.image,
-                                  color: Colors.white,
+                                Container(
+                                  padding: EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.lightBlue.withOpacity(0.6),
+                                    borderRadius:
+                                    BorderRadius.all(Radius.circular(10)),
+                                  ),
+                                  child: Icon(
+                                    Icons.image,
+                                    color: Colors.white,
+                                    size: 50,
+                                  ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.only(left: 5.0),
                                   child: Text(
                                     "Image",
-                                    style: TextStyle(color: Colors.white),
+                                    style: TextStyle(color: Colors.black,fontSize: 25),
                                   ),
-                                )
+                                ),
                               ],
                             ),
-                          ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 5.0),
+                              child: Text(
+                                "Upload anomaly image from camera",
+                                style: TextStyle(color: Colors.white,fontSize: 15),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: Image.asset("assets/taking_picture.png"),
-                      flex: 1,
-                    )
                   ],
                 ),
                 (_images.length == 0)
-                    ? Padding(
-                        padding: const EdgeInsets.only(bottom: 100.0),
-                        child: Center(
-                          child: Text(
-                            "Take image of anomalies to share",
-                            style: TextStyle(
-                              color: Colors.white60,
-                              fontSize: 20,
-                              shadows: <Shadow>[
-                                Shadow(
-                                  offset: Offset(0.0, 0.0),
-                                  blurRadius: 3.0,
-                                  color: Color.fromARGB(255, 0, 0, 0),
-                                ),
-                                Shadow(
-                                  offset: Offset(0.0, 0.0),
-                                  blurRadius: 8.0,
-                                  color: Color.fromARGB(125, 0, 0, 255),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
+                    ? Container(
+                  height: 250,
+                )
                     : Column(
                         children: [
                           for (var img in _images)
@@ -344,79 +342,76 @@ class _UploadImageState extends State<UploadImage> {
                             )
                         ],
                       ),
+
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Image.asset("assets/video_taking.png"),
-                      flex: 1,
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Center(
-                        child: InkWell(
-                          onTap: () {
-                            _getKey(context, video: true);
-                          },
-                          child: Container(
-                            height: 100,
-                            width: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.lightBlue.withOpacity(0.8),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10)),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                    InkWell(
+                      onTap: () {
+                        _getKey(context, video: true);
+                      },
+                      child: Container(
+                        height: 120,
+                        width: 160,
+                        margin: EdgeInsets.only(left: 15),
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius:
+                          BorderRadius.all(Radius.circular(10)),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(
-                                  Icons.videocam,
-                                  color: Colors.white,
+                                Container(
+                                  padding: EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.lightBlue.withOpacity(0.8),
+                                    borderRadius:
+                                    BorderRadius.all(Radius.circular(10)),
+                                  ),
+                                  child: Icon(
+                                    Icons.videocam,
+                                    color: Colors.white,
+                                    size: 50,
+                                  ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.only(left: 5.0),
                                   child: Text(
-                                    "Record",
-                                    style: TextStyle(color: Colors.white),
+                                    "Video",
+                                    style: TextStyle(color: Colors.black,fontSize: 25),
                                   ),
-                                )
+                                ),
                               ],
                             ),
-                          ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 5.0),
+                              child: Text(
+                                "Upload continuous video of road",
+                                style: TextStyle(color: Colors.white,fontSize: 15),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
                 _videoes.isEmpty
-                    ? Center(
-                        child: Text(
-                          "Capture video of anomalies to share",
-                          style: TextStyle(
-                            color: Colors.white60,
-                            fontSize: 20,
-                            shadows: <Shadow>[
-                              Shadow(
-                                offset: Offset(0.0, 0.0),
-                                blurRadius: 3.0,
-                                color: Color.fromARGB(255, 0, 0, 0),
-                              ),
-                              Shadow(
-                                offset: Offset(0.0, 0.0),
-                                blurRadius: 8.0,
-                                color: Color.fromARGB(125, 0, 0, 255),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
+                    ? Container()
                     : Column(
                         children: [
                           for (var v in _videoes)
                             UploadIndividualVideo(
-                              imageFile: v,
+                              imageFile: File(v["filePath"]!),
                               delete: deleteImage,
                               url: url,
                               path: path,
+                              startTime: int.parse(v["creationTime"]!),
                               // processedVideoUrl: widget.processedVideoUrl,
                             ),
                         ],

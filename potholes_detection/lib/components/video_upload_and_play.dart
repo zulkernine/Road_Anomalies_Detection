@@ -12,6 +12,7 @@ import 'dart:math';
 import 'package:chewie/chewie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
 
 import 'AnnomalyLocationsServices.dart';
 
@@ -19,6 +20,7 @@ class UploadIndividualVideo extends StatefulWidget {
   final File imageFile;
   final Function delete;
   final String url;
+  final int startTime;
   // final String processedVideoUrl;
   final Map<int, LatLng> path;
   UploadIndividualVideo(
@@ -26,6 +28,7 @@ class UploadIndividualVideo extends StatefulWidget {
       required this.delete,
       this.url = "https://19495e184dba.ngrok.io/predict",
       // required this.processedVideoUrl,
+      required this.startTime,
       required this.path});
 
   @override
@@ -48,7 +51,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
   String processedFileName = "";
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     controller = VideoPlayerController.file(widget.imageFile);
     controller?.initialize();
@@ -56,7 +59,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
     setProcessedFileName();
   }
 
-  void setProcessedFileName()async{
+  void setProcessedFileName() async {
     var filename = DateTime.now().microsecondsSinceEpoch.toString() + ".mp4";
 
     String dir = (await getApplicationDocumentsDirectory()).path;
@@ -94,17 +97,16 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
       updateAnnomalyLocations(
           widget.path,
           processedData,
-          widget.imageFile.lastModifiedSync().millisecondsSinceEpoch -
-              (controller!.value.duration.inMilliseconds),
-          downloadUrl
-      );
+          widget.startTime,
+          downloadUrl);
     } else {
       print("Backend processing error occured");
       showDialog<String>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
           title: const Text('Error'),
-          content: Text("Backend processing error occurred, please retry.\n" + response.body),
+          content: Text("Backend processing error occurred, please retry.\n" +
+              response.body),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.pop(context, 'OK'),
@@ -184,7 +186,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
   }
 
   Future<File> _loadVideo() async {
-    if(processedImage != null) return processedImage!;
+    if (processedImage != null) return processedImage!;
     var httpClient = new HttpClient();
 
     File file = new File(processedFileName);
@@ -211,87 +213,87 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5),
+          color: Colors.white.withOpacity(0.7),
           border:
               Border.all(color: Color.fromRGBO(223, 225, 229, 1.0), width: 1)),
       child: Column(
         children: [
           processedInBackEnd
               ? Row(
-            children: [
-              ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlayVideo(
-                          videoPlayerController:
-                          VideoPlayerController.network(downloadUrl),
-                          looping: true,
-                          autoplay: true,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Text("Play")),
-              contentLength == 0
-                  ? Container()
-                  : Text("Processed Video: " +
-                  (contentLength / 1048576)
-                      .toStringAsPrecision(6) +
-                  " MB"),
-            ],
-          )
-          // FutureBuilder(
-          //         future: _loadVideo(),
-          //         builder: (ctx, snapshot) {
-          //           if (snapshot.connectionState == ConnectionState.done) {
-          //             // If we got an error
-          //             if (snapshot.hasError) {
-          //               return Center(
-          //                 child: Text(
-          //                   '${snapshot.error} occured',
-          //                   style: TextStyle(fontSize: 18),
-          //                 ),
-          //               );
-          //
-          //               // if we got our data
-          //             } else if (snapshot.hasData) {
-          //               // Extracting data from snapshot object
-          //               final data = snapshot.data as File;
-          //               return Row(
-          //                 children: [
-          //                   ElevatedButton(
-          //                       onPressed: () {
-          //                         Navigator.push(
-          //                           context,
-          //                           MaterialPageRoute(
-          //                             builder: (context) => PlayVideo(
-          //                               videoPlayerController:
-          //                                   VideoPlayerController.file(data),
-          //                               looping: true,
-          //                               autoplay: true,
-          //                             ),
-          //                           ),
-          //                         );
-          //                       },
-          //                       child: Text("Play")),
-          //                   contentLength == 0
-          //                       ? Container()
-          //                       : Text("Processed Video: " +
-          //                           (contentLength / 1048576)
-          //                               .toStringAsPrecision(6) +
-          //                           " MB"),
-          //                 ],
-          //               );
-          //             }
-          //           }
-          //
-          //           // Displaying LoadingSpinner to indicate waiting state
-          //           return Center(
-          //             child: CircularProgressIndicator(),
-          //           );
-          //         },
-          //       )
+                  children: [
+                    ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PlayVideo(
+                                videoPlayerController:
+                                    VideoPlayerController.network(downloadUrl),
+                                looping: true,
+                                autoplay: true,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text("Play")),
+                    contentLength == 0
+                        ? Container()
+                        : Text("Processed Video: " +
+                            (contentLength / 1048576).toStringAsPrecision(6) +
+                            " MB"),
+                  ],
+                )
+              // FutureBuilder(
+              //         future: _loadVideo(),
+              //         builder: (ctx, snapshot) {
+              //           if (snapshot.connectionState == ConnectionState.done) {
+              //             // If we got an error
+              //             if (snapshot.hasError) {
+              //               return Center(
+              //                 child: Text(
+              //                   '${snapshot.error} occured',
+              //                   style: TextStyle(fontSize: 18),
+              //                 ),
+              //               );
+              //
+              //               // if we got our data
+              //             } else if (snapshot.hasData) {
+              //               // Extracting data from snapshot object
+              //               final data = snapshot.data as File;
+              //               return Row(
+              //                 children: [
+              //                   ElevatedButton(
+              //                       onPressed: () {
+              //                         Navigator.push(
+              //                           context,
+              //                           MaterialPageRoute(
+              //                             builder: (context) => PlayVideo(
+              //                               videoPlayerController:
+              //                                   VideoPlayerController.file(data),
+              //                               looping: true,
+              //                               autoplay: true,
+              //                             ),
+              //                           ),
+              //                         );
+              //                       },
+              //                       child: Text("Play")),
+              //                   contentLength == 0
+              //                       ? Container()
+              //                       : Text("Processed Video: " +
+              //                           (contentLength / 1048576)
+              //                               .toStringAsPrecision(6) +
+              //                           " MB"),
+              //                 ],
+              //               );
+              //             }
+              //           }
+              //
+              //           // Displaying LoadingSpinner to indicate waiting state
+              //           return Center(
+              //             child: CircularProgressIndicator(),
+              //           );
+              //         },
+              //       )
               : FittedBox(
                   child: FutureBuilder(
                     future: getFileSize(widget.imageFile, 2),
@@ -426,6 +428,9 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
                   ),
                   onPressed: () {
                     this.widget.delete(this.widget.imageFile, isVideo: true);
+                    print(widget.imageFile
+                        .lastModifiedSync()
+                        .millisecondsSinceEpoch);
                   },
                   child: Row(
                     children: [
@@ -517,6 +522,3 @@ class _PlayVideoState extends State<PlayVideo> {
     );
   }
 }
-
-
-
