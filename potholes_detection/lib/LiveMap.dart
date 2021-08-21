@@ -114,28 +114,88 @@ class _LiveMapState extends State<LiveMap> {
                   margin: EdgeInsets.all(5),
                   child: SingleChildScrollView(
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        //Location
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Latitude"),
+                                Text(
+                                  "${l.latitude.toStringAsFixed(8)}",
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                )
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Longitude"),
+                                Text(
+                                  "${l.longitude.toStringAsFixed(8)}",
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 20,),
+                        //Anomalies
                         Text(
-                          "Lat:${l.latitude}  Lon:${l.longitude}",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          "Anomalies:",
+                          style: TextStyle(fontSize: 15),
                         ),
                         Text(
-                          "Anomalies: " + marker_positions[l]!.names.join(", "),
+                          marker_positions[l]!.names.join(", "),
                           style: TextStyle(fontSize: 20),
                         ),
+                        SizedBox(height: 20,),
+
+                        //Source link
                         Text(
                           "You may download the processed " +
                               marker_positions[l]!.sourceType +
                               " here: ",
                           style: TextStyle(fontSize: 10),
                         ),
-                        SelectableText(
-                          marker_positions[l]!.sourceUrl,
-                          style: TextStyle(color: Colors.blue,fontSize: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SelectableText(
+                                marker_positions[l]!.sourceUrl,
+                                style:
+                                    TextStyle(color: Colors.blue, fontSize: 20),
+                              ),
+                              flex: 9,
+                            ),
+                            Expanded(
+                              child: IconButton(
+                                  icon: Icon(Icons.copy),
+                                  onPressed: () async{
+                                    await Clipboard.setData(new ClipboardData(
+                                            text:
+                                                marker_positions[l]!.sourceUrl));
+                                  }),
+                              flex: 1,
+                            ),
+                          ],
                         ),
+
+                        SizedBox(height: 20,),
                         if (marker_positions[l]!.sourceType == "image")
-                          Image.network(marker_positions[l]!.sourceUrl,fit: BoxFit.fill,
-                            loadingBuilder:(BuildContext context, Widget child,ImageChunkEvent? loadingProgress) {
+                          Image.network(
+                            marker_positions[l]!.sourceUrl,
+                            fit: BoxFit.fill,
+                            loadingBuilder: (BuildContext context, Widget child,
+                                ImageChunkEvent? loadingProgress) {
                               if (loadingProgress == null) return child;
                               return Center(
                                 child: CircularProgressIndicator(),
