@@ -11,8 +11,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image/image.dart' as img;
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:potholes_detection/components/video_upload_and_play.dart';
+import 'package:video_player/video_player.dart';
 import './components/AnnomalyLocationsServices.dart';
 
 class LiveMap extends StatefulWidget {
@@ -107,6 +110,7 @@ class _LiveMapState extends State<LiveMap> {
           setState(() {
             showModalBottomSheet(
               context: context,
+
               builder: (BuildContext context) {
                 return Container(
                   width: MediaQuery.of(context).size.width * 0.90,
@@ -147,7 +151,9 @@ class _LiveMapState extends State<LiveMap> {
                           ],
                         ),
 
-                        SizedBox(height: 20,),
+                        SizedBox(
+                          height: 20,
+                        ),
                         //Anomalies
                         Text(
                           "Anomalies:",
@@ -157,7 +163,9 @@ class _LiveMapState extends State<LiveMap> {
                           marker_positions[l]!.names.join(", "),
                           style: TextStyle(fontSize: 20),
                         ),
-                        SizedBox(height: 20,),
+                        SizedBox(
+                          height: 20,
+                        ),
 
                         //Source link
                         Text(
@@ -166,30 +174,39 @@ class _LiveMapState extends State<LiveMap> {
                               " here: ",
                           style: TextStyle(fontSize: 10),
                         ),
+                        ElevatedButton(
+                            onPressed: () async {
+                              await canLaunch(marker_positions[l]!.sourceUrl)
+                                  ? await launch(marker_positions[l]!.sourceUrl)
+                                  : print("Can't launch url");
+                            },
+                            child: Text("Download the source " +
+                                marker_positions[l]!.sourceType)),
                         Row(
                           children: [
                             Expanded(
-                              child: SelectableText(
-                                marker_positions[l]!.sourceUrl,
+                              child: Text(
+                                "Or copy the URL",
                                 style:
-                                    TextStyle(color: Colors.blue, fontSize: 20),
+                                    TextStyle(fontSize: 17),
                               ),
                               flex: 9,
                             ),
                             Expanded(
                               child: IconButton(
                                   icon: Icon(Icons.copy),
-                                  onPressed: () async{
+                                  onPressed: () async {
                                     await Clipboard.setData(new ClipboardData(
-                                            text:
-                                                marker_positions[l]!.sourceUrl));
+                                        text: marker_positions[l]!.sourceUrl));
                                   }),
                               flex: 1,
                             ),
                           ],
                         ),
 
-                        SizedBox(height: 20,),
+                        SizedBox(
+                          height: 20,
+                        ),
                         if (marker_positions[l]!.sourceType == "image")
                           Image.network(
                             marker_positions[l]!.sourceUrl,
@@ -201,7 +218,24 @@ class _LiveMapState extends State<LiveMap> {
                                 child: CircularProgressIndicator(),
                               );
                             },
-                          ),
+                          )
+                        else
+                          ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PlayVideo(
+                                      videoPlayerController:
+                                          VideoPlayerController.network(
+                                              marker_positions[l]!.sourceUrl),
+                                      autoplay: false,
+                                      looping: false,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Text("Play")),
                       ],
                     ),
                   ),

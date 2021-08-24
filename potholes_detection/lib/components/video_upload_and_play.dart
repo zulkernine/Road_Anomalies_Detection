@@ -12,7 +12,6 @@ import 'dart:math';
 import 'package:chewie/chewie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
-import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
 
 import 'AnnomalyLocationsServices.dart';
 
@@ -95,10 +94,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
         processedData = body;
       });
       updateAnnomalyLocations(
-          widget.path,
-          processedData,
-          widget.startTime,
-          downloadUrl);
+          widget.path, processedData, widget.startTime, downloadUrl);
     } else {
       print("Backend processing error occured");
       showDialog<String>(
@@ -229,7 +225,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
                               builder: (context) => PlayVideo(
                                 videoPlayerController:
                                     VideoPlayerController.network(downloadUrl),
-                                looping: true,
+                                looping: false,
                                 autoplay: true,
                               ),
                             ),
@@ -321,8 +317,8 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
                                           videoPlayerController:
                                               VideoPlayerController.file(
                                                   widget.imageFile),
-                                          looping: true,
-                                          autoplay: true,
+                                          looping: false,
+                                          autoplay: false,
                                         ),
                                       ),
                                     );
@@ -509,14 +505,17 @@ class _PlayVideoState extends State<PlayVideo> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text("Play Video"),
-        ),
-        body: Chewie(
-          controller: _chewieController,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Play Video"),
+      ),
+      body: Center(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.95,
+          padding: EdgeInsets.only(top: 10,bottom: 20),
+          child: Chewie(
+            controller: _chewieController,
+          ),
         ),
       ),
     );

@@ -258,10 +258,18 @@ class _UploadImageState extends State<UploadImage> {
         child: Container(
           constraints: BoxConstraints.expand(),
           decoration: BoxDecoration(
-            color: Colors.grey.shade300,
+              gradient: LinearGradient(
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                // center: Alignment.center,
+                //   radius: 0.9,
+                  colors: [Colors.black12,Colors.grey, Colors.white]),
+
+            // color: Colors.grey.shade300,
               image: DecorationImage(
             image: AssetImage("assets/background3.png"),
             fit: BoxFit.fitHeight,
+
           )),
           child: SingleChildScrollView(
             child: Column(
@@ -294,7 +302,7 @@ class _UploadImageState extends State<UploadImage> {
                               // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
-                                  padding: EdgeInsets.all(5),
+                                  padding: EdgeInsets.all(2),
                                   decoration: BoxDecoration(
                                     color: Colors.lightBlue.withOpacity(0.6),
                                     borderRadius:
@@ -303,20 +311,20 @@ class _UploadImageState extends State<UploadImage> {
                                   child: Icon(
                                     Icons.image,
                                     color: Colors.white,
-                                    size: 50,
+                                    size: 40,
                                   ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.only(left: 5.0),
                                   child: Text(
-                                    "Image",
+                                    "Capture",
                                     style: TextStyle(color: Colors.black,fontSize: 25),
                                   ),
                                 ),
                               ],
                             ),
                             Padding(
-                              padding: const EdgeInsets.only(left: 5.0),
+                              padding: const EdgeInsets.only(left: 5.0,top: 5),
                               child: Text(
                                 "Upload anomaly image from camera",
                                 style: TextStyle(color: Colors.white,fontSize: 15),
@@ -367,7 +375,7 @@ class _UploadImageState extends State<UploadImage> {
                               // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
-                                  padding: EdgeInsets.all(5),
+                                  padding: EdgeInsets.all(2),
                                   decoration: BoxDecoration(
                                     color: Colors.lightBlue.withOpacity(0.8),
                                     borderRadius:
@@ -376,20 +384,20 @@ class _UploadImageState extends State<UploadImage> {
                                   child: Icon(
                                     Icons.videocam,
                                     color: Colors.white,
-                                    size: 50,
+                                    size: 40,
                                   ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.only(left: 5.0),
                                   child: Text(
-                                    "Video",
+                                    "Record",
                                     style: TextStyle(color: Colors.black,fontSize: 25),
                                   ),
                                 ),
                               ],
                             ),
                             Padding(
-                              padding: const EdgeInsets.only(left: 5.0),
+                              padding: const EdgeInsets.only(left: 5.0,top: 5),
                               child: Text(
                                 "Upload continuous video of road",
                                 style: TextStyle(color: Colors.white,fontSize: 15),
