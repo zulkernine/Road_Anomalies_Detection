@@ -27,7 +27,7 @@ class _MyAppState extends State<MyApp> {
 
   //States value for UploadImage()
   List<File> _images = [];
-  File? _videoes = null;
+  List<Map<String, String>> _videoes = <Map<String, String>>[];
   String processedVideoUrl = "";
   String server_url = "";
   Map<int, LatLng> path_coordinate = {};
@@ -38,8 +38,14 @@ class _MyAppState extends State<MyApp> {
   final bottomNavigationItems = [
     BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
     BottomNavigationBarItem(icon: Icon(Icons.cloud_upload), label: 'Upload'),
-    BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map')
+    BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
   ];
+
+  void updateServerUrl(String url) {
+    setState(() {
+      server_url = url;
+    });
+  }
 
   void onTapBottomNavigation(int index) {
     setState(() {
@@ -106,9 +112,11 @@ class _MyAppState extends State<MyApp> {
       url: server_url,
       videoes: _videoes,
       path: path_coordinate,
+      updateServerUrl: updateServerUrl,
       processedVideoUrl: processedVideoUrl,
     ));
     pageList.add(LiveMap());
+    // pageList.add(LiveMap());
     super.initState();
   }
 
@@ -155,6 +163,7 @@ class _MyAppState extends State<MyApp> {
             index: currentPaeIndex,
           ),
           bottomNavigationBar: BottomNavigationBar(
+            type : BottomNavigationBarType.fixed,
             items: bottomNavigationItems,
             currentIndex: currentPaeIndex,
             onTap: onTapBottomNavigation,

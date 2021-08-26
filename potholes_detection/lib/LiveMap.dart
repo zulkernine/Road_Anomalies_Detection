@@ -110,7 +110,6 @@ class _LiveMapState extends State<LiveMap> {
           setState(() {
             showModalBottomSheet(
               context: context,
-
               builder: (BuildContext context) {
                 return Container(
                   width: MediaQuery.of(context).size.width * 0.90,
@@ -174,32 +173,40 @@ class _LiveMapState extends State<LiveMap> {
                               " here: ",
                           style: TextStyle(fontSize: 10),
                         ),
-                        ElevatedButton(
-                            onPressed: () async {
-                              await canLaunch(marker_positions[l]!.sourceUrl)
-                                  ? await launch(marker_positions[l]!.sourceUrl)
-                                  : print("Can't launch url");
-                            },
-                            child: Text("Download the source " +
-                                marker_positions[l]!.sourceType)),
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                "Or copy the URL",
-                                style:
-                                    TextStyle(fontSize: 17),
+                              flex:2,
+                              child: ElevatedButton(
+                                child: Icon(Icons.download_outlined),
+                                onPressed: () async {
+                                  await canLaunch(marker_positions[l]!.sourceUrl)
+                                      ? await launch(
+                                          marker_positions[l]!.sourceUrl)
+                                      : print("Can't launch url");
+                                },
+                            )),
+                            Expanded(
+                              flex:8,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  "Download the source " +
+                                      marker_positions[l]!.sourceType +
+                                      "\n or copy the URL",
+                                  style: TextStyle(fontSize: 15,),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                              flex: 9,
                             ),
                             Expanded(
-                              child: IconButton(
-                                  icon: Icon(Icons.copy),
+                              child: ElevatedButton(
+                                  child: Icon(Icons.copy),
                                   onPressed: () async {
                                     await Clipboard.setData(new ClipboardData(
                                         text: marker_positions[l]!.sourceUrl));
                                   }),
-                              flex: 1,
+                              flex: 2,
                             ),
                           ],
                         ),

@@ -15,16 +15,18 @@ import './components/image_upload_component.dart';
 
 class UploadImage extends StatefulWidget {
   final List<File> images;
-  final File? videoes;
+  final List<Map<String, String>> videoes;
   final String processedVideoUrl;
   final String url;
   final Map<int, LatLng> path;
+  final Function updateServerUrl;
 
   UploadImage(
       {required this.images,
       required this.url,
       required this.videoes,
       required this.path,
+      required this.updateServerUrl,
       required this.processedVideoUrl});
 
   @override
@@ -35,17 +37,19 @@ class _UploadImageState extends State<UploadImage> {
   List<File> _images = [];
   // File? _videoes = null;
   // List<File> _videoes = [];
-  List<Map<String,String>> _videoes = <Map<String,String>>[];   // {"filePath":"", "creationTime":"ISO_FORMATE_Date"}
+  List<Map<String, String>> _videoes =
+      []; // {"filePath":"", "creationTime":"ISO_FORMATE_Date"}
   String url = "";
   bool recordingNow = false;
   Map<int, LatLng> path = {};
   bool splittingVideo = false;
+  int currentlyUploadingVideoIndex = -1;
 
   @override
   void initState() {
     super.initState();
     _images = this.widget.images;
-    // _videoes = widget.videoes;
+    _videoes = widget.videoes;
     url = widget.url;
     path = widget.path;
     Location().onLocationChanged.listen((LocationData currentLocation) {
@@ -85,6 +89,9 @@ class _UploadImageState extends State<UploadImage> {
   Future getVideo(bool gallery) async {
     ImagePicker picker = ImagePicker();
     PickedFile? pickedFile;
+    setState(() {
+      splittingVideo = true;
+    });
     // Let user select photo from gallery
     if (gallery) {
       pickedFile = await picker.getVideo(
@@ -102,6 +109,7 @@ class _UploadImageState extends State<UploadImage> {
       pickedFile = await picker.getVideo(
         source: ImageSource.camera,
       );
+
       loc = await Location().getLocation();
       setState(() {
         recordingNow = false;
@@ -121,23 +129,22 @@ class _UploadImageState extends State<UploadImage> {
       );
     }
 
-    setState(() {
-      splittingVideo = true;
-    });
     if (mediaInfo != null) {
-      splitVideo(mediaInfo.file!);
+      await splitVideo(mediaInfo.file!);
     } else {
       print('No Video selected.');
     }
     setState(() {
       splittingVideo = false;
     });
+
+    print("main() videoes length: ${widget.videoes.length}");
   }
 
-  void splitVideo(File _video) async {
+  Future splitVideo(File _video) async {
     print(_video.path);
     String appDocPath = (await getApplicationDocumentsDirectory()).path;
-    double frameLength = 120; //Default should be 120s
+    double frameLength = 5; //Default should be 120s
 
     final FlutterFFprobe flutterFFprobe = FlutterFFprobe();
     Map<dynamic, dynamic> videometadata =
@@ -147,41 +154,48 @@ class _UploadImageState extends State<UploadImage> {
     print("duration: $duration");
     print("format: ${formatTime(duration.toInt())}");
     print(videometadata);
-    int creationTime = DateTime.parse(videometadata["tags"]["creation_time"]).millisecondsSinceEpoch ;
+    int creationTime = DateTime.parse(videometadata["tags"]["creation_time"])
+        .millisecondsSinceEpoch;
 
     for (double i = 0; i < duration - frameLength; i += frameLength) {
       final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
-      String videoPath = appDocPath +"/"+
-          DateTime.now().millisecondsSinceEpoch.toString() +"-"+
+      String videoPath = appDocPath +
+          "/" +
+          DateTime.now().millisecondsSinceEpoch.toString() +
+          "-" +
           i.toString() +
           ".mp4";
       print(videoPath);
-      int rc = await _flutterFFmpeg
-          .execute(
-              "-ss ${formatTime(i.toInt())} -i \"${_video.path}\" -t ${formatTime((frameLength).toInt())} -c copy $videoPath"
-      );
+      int rc = await _flutterFFmpeg.execute(
+          "-ss ${formatTime(i.toInt())} -i \"${_video.path}\" -t ${formatTime((frameLength).toInt())} -c copy $videoPath");
       print("FFmpeg process for executionId  exited with rc $rc");
       if (rc == 0) {
         setState(() {
-          _videoes.add({"filePath":videoPath,"creationTime":(creationTime + i.toInt()).toString()});
+          _videoes.add({
+            "filePath": videoPath,
+            "creationTime": (creationTime + i.toInt()).toString()
+          });
         });
       }
-
     }
 
     final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
-    String videoPath = appDocPath +"/"+
+    String videoPath = appDocPath +
+        "/" +
         DateTime.now().millisecondsSinceEpoch.toString() +
         ".mp4";
     print(videoPath);
-    int rc = await _flutterFFmpeg
-        .execute(
-        "-ss ${formatTime((duration - (duration%frameLength)).toInt())} -i \"${_video.path}\" -t ${formatTime(((duration%frameLength)).toInt())} -c copy $videoPath"
-    );
+    int rc = await _flutterFFmpeg.execute(
+        "-ss ${formatTime((duration - (duration % frameLength)).toInt())} -i \"${_video.path}\" -t ${formatTime(((duration % frameLength)).toInt())} -c copy $videoPath");
     print("FFmpeg process for executionId  exited with rc $rc");
     if (rc == 0) {
       setState(() {
-        _videoes.add({"filePath":videoPath,"creationTime":(creationTime + (duration - (duration%frameLength)).toInt()).toString()});
+        _videoes.add({
+          "filePath": videoPath,
+          "creationTime":
+              (creationTime + (duration - (duration % frameLength)).toInt())
+                  .toString()
+        });
       });
     }
   }
@@ -189,7 +203,8 @@ class _UploadImageState extends State<UploadImage> {
   deleteImage(File img, {bool isVideo = false}) {
     setState(() {
       if (isVideo) {
-        _videoes.removeWhere((Map<String, String> e) => e["filePath"] == img.path );
+        _videoes
+            .removeWhere((Map<String, String> e) => e["filePath"] == img.path);
       } else {
         _images.remove(img);
       }
@@ -230,6 +245,7 @@ class _UploadImageState extends State<UploadImage> {
                 onPressed: () {
                   key = true;
                   if (!isBlank) {
+                    widget.updateServerUrl(url);
                     setState(() {
                       Navigator.pop(context);
                     });
@@ -244,6 +260,21 @@ class _UploadImageState extends State<UploadImage> {
           );
         });
     return key;
+  }
+
+  void uploadNextVideo(){
+    setState(() {
+      if(_videoes.length > currentlyUploadingVideoIndex+1)
+        ++currentlyUploadingVideoIndex;
+      else
+        currentlyUploadingVideoIndex = -1;
+    });
+  }
+
+  void uploadAllVideo(){
+    setState(() {
+      currentlyUploadingVideoIndex = 0;
+    });
   }
 
   @override
@@ -261,16 +292,12 @@ class _UploadImageState extends State<UploadImage> {
               gradient: LinearGradient(
                   begin: Alignment.bottomLeft,
                   end: Alignment.topRight,
-                // center: Alignment.center,
-                //   radius: 0.9,
-                  colors: [Colors.black12,Colors.grey, Colors.white]),
-
-            // color: Colors.grey.shade300,
+                  colors: [Colors.black12, Colors.grey, Colors.white]),
+              // color: Colors.grey.shade300,
               image: DecorationImage(
-            image: AssetImage("assets/background3.png"),
-            fit: BoxFit.fitHeight,
-
-          )),
+                image: AssetImage("assets/background3.png"),
+                fit: BoxFit.fitHeight,
+              )),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -292,8 +319,7 @@ class _UploadImageState extends State<UploadImage> {
                         padding: EdgeInsets.symmetric(horizontal: 10),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.2),
-                          borderRadius:
-                              BorderRadius.all(Radius.circular(10)),
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -306,7 +332,7 @@ class _UploadImageState extends State<UploadImage> {
                                   decoration: BoxDecoration(
                                     color: Colors.lightBlue.withOpacity(0.6),
                                     borderRadius:
-                                    BorderRadius.all(Radius.circular(10)),
+                                        BorderRadius.all(Radius.circular(10)),
                                   ),
                                   child: Icon(
                                     Icons.image,
@@ -318,16 +344,18 @@ class _UploadImageState extends State<UploadImage> {
                                   padding: const EdgeInsets.only(left: 5.0),
                                   child: Text(
                                     "Capture",
-                                    style: TextStyle(color: Colors.black,fontSize: 25),
+                                    style: TextStyle(
+                                        color: Colors.black, fontSize: 25),
                                   ),
                                 ),
                               ],
                             ),
                             Padding(
-                              padding: const EdgeInsets.only(left: 5.0,top: 5),
+                              padding: const EdgeInsets.only(left: 5.0, top: 5),
                               child: Text(
                                 "Upload anomaly image from camera",
-                                style: TextStyle(color: Colors.white,fontSize: 15),
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 15),
                               ),
                             ),
                           ],
@@ -338,8 +366,8 @@ class _UploadImageState extends State<UploadImage> {
                 ),
                 (_images.length == 0)
                     ? Container(
-                  height: 250,
-                )
+                        height: 250,
+                      )
                     : Column(
                         children: [
                           for (var img in _images)
@@ -350,7 +378,6 @@ class _UploadImageState extends State<UploadImage> {
                             )
                         ],
                       ),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
@@ -365,8 +392,7 @@ class _UploadImageState extends State<UploadImage> {
                         padding: EdgeInsets.symmetric(horizontal: 10),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.2),
-                          borderRadius:
-                          BorderRadius.all(Radius.circular(10)),
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -379,7 +405,7 @@ class _UploadImageState extends State<UploadImage> {
                                   decoration: BoxDecoration(
                                     color: Colors.lightBlue.withOpacity(0.8),
                                     borderRadius:
-                                    BorderRadius.all(Radius.circular(10)),
+                                        BorderRadius.all(Radius.circular(10)),
                                   ),
                                   child: Icon(
                                     Icons.videocam,
@@ -391,16 +417,18 @@ class _UploadImageState extends State<UploadImage> {
                                   padding: const EdgeInsets.only(left: 5.0),
                                   child: Text(
                                     "Record",
-                                    style: TextStyle(color: Colors.black,fontSize: 25),
+                                    style: TextStyle(
+                                        color: Colors.black, fontSize: 25),
                                   ),
                                 ),
                               ],
                             ),
                             Padding(
-                              padding: const EdgeInsets.only(left: 5.0,top: 5),
+                              padding: const EdgeInsets.only(left: 5.0, top: 5),
                               child: Text(
                                 "Upload continuous video of road",
-                                style: TextStyle(color: Colors.white,fontSize: 15),
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 15),
                               ),
                             ),
                           ],
@@ -413,14 +441,16 @@ class _UploadImageState extends State<UploadImage> {
                     ? Container()
                     : Column(
                         children: [
-                          for (var v in _videoes)
+                          ElevatedButton(onPressed: (){uploadAllVideo();}, child: Text("Upload All Video")),
+                          for (int i=0;i<_videoes.length;i++) // var v in _videoes)
                             UploadIndividualVideo(
-                              imageFile: File(v["filePath"]!),
+                              imageFile: File(_videoes[i]["filePath"]!),
                               delete: deleteImage,
                               url: url,
                               path: path,
-                              startTime: int.parse(v["creationTime"]!),
-                              // processedVideoUrl: widget.processedVideoUrl,
+                              startTime: int.parse(_videoes[i]["creationTime"]!),
+                              uploadImmedeately: currentlyUploadingVideoIndex==i,
+                              uploadNext: uploadNextVideo,
                             ),
                         ],
                       ),
@@ -431,7 +461,10 @@ class _UploadImageState extends State<UploadImage> {
                         child: Column(
                           children: [
                             CircularProgressIndicator(),
-                            Text("Compressing/Processing the video",style: TextStyle(color: Colors.white),),
+                            Text(
+                              "Compressing/Processing the video",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ],
                         ),
                       ))

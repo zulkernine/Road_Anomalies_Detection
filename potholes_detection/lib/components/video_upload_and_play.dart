@@ -20,14 +20,17 @@ class UploadIndividualVideo extends StatefulWidget {
   final Function delete;
   final String url;
   final int startTime;
+  final bool uploadImmedeately;
+  final Function uploadNext;
   // final String processedVideoUrl;
   final Map<int, LatLng> path;
   UploadIndividualVideo(
       {required this.imageFile,
       required this.delete,
       this.url = "https://19495e184dba.ngrok.io/predict",
-      // required this.processedVideoUrl,
+      required this.uploadImmedeately,
       required this.startTime,
+      required this.uploadNext,
       required this.path});
 
   @override
@@ -42,6 +45,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
   String downloadUrl = "";
   VideoPlayerController? controller;
   bool processedInBackEnd = false;
+  bool backendProcessError = false;
   bool isProcessing = false;
   var processedData;
   File? processedImage;
@@ -58,6 +62,14 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
     setProcessedFileName();
   }
 
+  @override
+  void didUpdateWidget(covariant UploadIndividualVideo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.uploadImmedeately) onUploadButtonClick();
+
+  }
+
   void setProcessedFileName() async {
     var filename = DateTime.now().microsecondsSinceEpoch.toString() + ".mp4";
 
@@ -68,7 +80,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
   }
 
   Future<void> handleUploadTask(File largeFile) async {
-    await _uploadToFirebase(largeFile);
+    if(!_uploadComplete)  await _uploadToFirebase(largeFile);
     setState(() {
       isProcessing = true;
     });
@@ -84,6 +96,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
       print(body);
       setState(() {
         message = body.toString();
+        backendProcessError = false;
       });
       await firebase_storage.FirebaseStorage.instance
           .refFromURL(downloadUrl)
@@ -97,11 +110,14 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
           widget.path, processedData, widget.startTime, downloadUrl);
     } else {
       print("Backend processing error occured");
+      setState(() {
+        backendProcessError = true;
+      });
       showDialog<String>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
           title: const Text('Error'),
-          content: Text("Backend processing error occurred, please retry.\n" +
+          content: Text("Backend processing error occurred, please retry or change key.\n" +
               response.body),
           actions: <Widget>[
             TextButton(
@@ -201,6 +217,49 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
     print("Completed downloading");
     return file;
   }
+
+  void onUploadButtonClick() async {
+    if (this.widget.url.length < 26) {
+      showDialog<String>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Insert key'),
+          content: const Text("Can't upload without key"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'OK'),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      try {
+        await handleUploadTask(this.widget.imageFile);
+
+        if(widget.uploadImmedeately){
+          widget.uploadNext();
+        }
+      } catch (error) {
+        showDialog<String>(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text('Upload error'),
+            content: Text(error.toString()),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(context, 'OK'),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -369,42 +428,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
                         backgroundColor:
                             MaterialStateProperty.all<Color>(Colors.green),
                       ),
-                      onPressed: () async {
-                        if (this.widget.url.length < 26) {
-                          showDialog<String>(
-                            context: context,
-                            builder: (BuildContext context) => AlertDialog(
-                              title: const Text('Insert key'),
-                              content: const Text("Can't upload without key"),
-                              actions: <Widget>[
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, 'OK'),
-                                  child: const Text('OK'),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          try {
-                            await handleUploadTask(this.widget.imageFile);
-                          } catch (error) {
-                            showDialog<String>(
-                              context: context,
-                              builder: (BuildContext context) => AlertDialog(
-                                title: const Text('Upload error'),
-                                content: Text(error.toString()),
-                                actions: <Widget>[
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, 'OK'),
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        }
-                      },
+                      onPressed: onUploadButtonClick,
                       child: Row(
                         children: [
                           Icon(Icons.cloud_upload),
@@ -451,7 +475,9 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
           if (isProcessing) Text("Please wait while processing the video...."),
           Container(
             child: Text(message),
-          )
+          ),
+          if(backendProcessError)
+            Text("Backend couldn't processed the data , please retry!"),
         ],
       ),
     );
@@ -512,7 +538,7 @@ class _PlayVideoState extends State<PlayVideo> {
       body: Center(
         child: Container(
           width: MediaQuery.of(context).size.width * 0.95,
-          padding: EdgeInsets.only(top: 10,bottom: 20),
+          padding: EdgeInsets.only(top: 10, bottom: 20),
           child: Chewie(
             controller: _chewieController,
           ),
