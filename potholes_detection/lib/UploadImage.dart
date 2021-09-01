@@ -92,7 +92,7 @@ class _UploadImageState extends State<UploadImage> {
     setState(() {
       splittingVideo = true;
     });
-    // Let user select photo from gallery
+    // Let user select photo from gallery - DON'T, take live camera and location :-(
     if (gallery) {
       pickedFile = await picker.getVideo(
         source: ImageSource.gallery,
