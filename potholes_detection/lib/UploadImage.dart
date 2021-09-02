@@ -144,7 +144,7 @@ class _UploadImageState extends State<UploadImage> {
   Future splitVideo(File _video) async {
     print(_video.path);
     String appDocPath = (await getApplicationDocumentsDirectory()).path;
-    double frameLength = 5; //Default should be 120s
+    double frameLength = 120; //Default should be 120s
 
     final FlutterFFprobe flutterFFprobe = FlutterFFprobe();
     Map<dynamic, dynamic> videometadata =
