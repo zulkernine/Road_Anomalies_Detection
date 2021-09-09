@@ -67,8 +67,8 @@ class _UploadImageState extends State<UploadImage> {
     if (gallery) {
       pickedFile = await picker.getImage(
           source: ImageSource.gallery,
-          maxHeight: 512,
-          maxWidth: 512,
+          maxHeight: 1024,
+          maxWidth: 1024,
           imageQuality: 60);
     }
     // Otherwise open camera to get new photo
@@ -245,6 +245,7 @@ class _UploadImageState extends State<UploadImage> {
                 onPressed: () {
                   key = true;
                   if (!isBlank) {
+                    print(url);
                     widget.updateServerUrl(url);
                     setState(() {
                       Navigator.pop(context);

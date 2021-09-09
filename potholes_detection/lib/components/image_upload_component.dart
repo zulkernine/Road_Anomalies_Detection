@@ -55,6 +55,9 @@ class _UploadIndividualImageState extends State<UploadIndividualImage> {
     setState(() {
       isProcessing = false;
     });
+    print(response.statusCode);
+    print(response.body);
+    print(response);
     if (response.statusCode == 200) {
       var body = jsonDecode(response.body);
       print("Processed response:");
@@ -152,6 +155,13 @@ class _UploadIndividualImageState extends State<UploadIndividualImage> {
   }
 
   Future<File> _loadImage() async {
+    if(labels.isEmpty){
+      setState(() {
+        processedImage = widget.imageFile;
+      });
+      return widget.imageFile;
+    }
+
     var filename = DateTime.now().microsecondsSinceEpoch.toString() + ".png";
     var httpClient = new HttpClient();
 
@@ -221,6 +231,7 @@ class _UploadIndividualImageState extends State<UploadIndividualImage> {
                   (contentLength / 1048576).toStringAsPrecision(6) +
                   " MB")
               : Container(),
+          if(processedInBackEnd && labels.isEmpty) Text("No anomalies found. Please retry with another image."),
           Row(
             children: [
               if (_uploadComplete)

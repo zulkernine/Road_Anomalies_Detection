@@ -6,12 +6,14 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:firebase_core/firebase_core.dart' as firebase_core;
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:math';
 import 'package:chewie/chewie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'AnnomalyLocationsServices.dart';
 
@@ -70,6 +72,18 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
 
   }
 
+  String processData(var body){
+    var lb = body['labels'] as Map;
+    Set<String> res = Set();
+    for(var e in lb.entries){
+      if((e.value as List).isNotEmpty){
+        res.addAll([ for(var s in e.value ) s.toString() ]);
+      }
+    }
+
+    return res.join(", ");
+  }
+
   void setProcessedFileName() async {
     var filename = DateTime.now().microsecondsSinceEpoch.toString() + ".mp4";
 
@@ -95,7 +109,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
       print("Processed video");
       print(body);
       setState(() {
-        message = body.toString();
+        message = processData(body);
         backendProcessError = false;
       });
       await firebase_storage.FirebaseStorage.instance
@@ -274,10 +288,47 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
       child: Column(
         children: [
           processedInBackEnd
-              ? Row(
+              ? Column(
                   children: [
+                    Row (
+                      children: [
+                        Expanded(
+                            flex:2,
+                            child: ElevatedButton(
+                              child: Icon(Icons.download_outlined),
+                              onPressed: () async {
+                                await canLaunch(downloadUrl)
+                                    ? await launch(
+                                    downloadUrl)
+                                    : print("Can't launch url");
+                              },
+                            )),
+                        Expanded(
+                          flex:8,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              "Download the source " +
+                                  "\n or copy the URL",
+                              style: TextStyle(fontSize: 15,),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: ElevatedButton(
+                              child: Icon(Icons.copy),
+                              onPressed: () async {
+                                await Clipboard.setData(new ClipboardData(
+                                    text: downloadUrl));
+                              }),
+                          flex: 2,
+                        ),
+                      ],
+                    ),
                     ElevatedButton(
                         onPressed: () {
+                          print(downloadUrl);
                           Navigator.push(
                             context,
                             MaterialPageRoute(

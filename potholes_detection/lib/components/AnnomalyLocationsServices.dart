@@ -86,6 +86,8 @@ class Anomaly{
 
 
 Future<void> updateAnomaly({required LatLng location,required Set<String> anomaliesName,required url}) async {
+  if(anomaliesName.isEmpty) return;
+
   Anomaly anomaly = Anomaly(location, anomaliesName, url);
   print("Updating firestore");
   print(anomaly.toJson());

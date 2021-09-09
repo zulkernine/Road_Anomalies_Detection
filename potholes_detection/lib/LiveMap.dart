@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image/image.dart' as img;
+import 'package:location/location.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -31,8 +32,7 @@ class _LiveMapState extends State<LiveMap> {
   Anomalies anomalies = Anomalies();
   Map<LatLng, Anomaly> marker_positions = Map();
 
-  static const LatLng _center =
-      const LatLng(22.496695803485945, 88.37183921981813);
+  LatLng _center = LatLng(22.496695803485945, 88.37183921981813);
 
   @override
   void initState() {
@@ -47,6 +47,14 @@ class _LiveMapState extends State<LiveMap> {
       setMarkers();
       print("Listening to stream firestore");
       print(anomalies.toJson());
+    });
+  }
+
+  Future setCameraToCurrentLocation()async{
+    Location loc = Location();
+    var l = await loc.getLocation();
+    setState(() {
+      _center = LatLng(l.latitude!, l.longitude!);
     });
   }
 
@@ -89,10 +97,11 @@ class _LiveMapState extends State<LiveMap> {
     print("Completed updating firestore");
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    // setState(() {
-    // mapController.complete(controller);
-    // });
+  void _onMapCreated(GoogleMapController controller) async{
+    await setCameraToCurrentLocation();
+    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+        target: _center,
+        zoom: 17.0)));
   }
 
   void setMarkers() async {
