@@ -591,7 +591,7 @@ class _PlayVideoState extends State<PlayVideo> {
           width: MediaQuery.of(context).size.width * 0.95,
           padding: EdgeInsets.only(top: 10, bottom: 20),
           child: Chewie(
-            controller: _chewieController,
+            controller: _chewieController!,
           ),
         ),
       ),

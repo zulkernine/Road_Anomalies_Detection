@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:potholes_detection/main.dart';
 
 class Anomalies {
   Set<LatLng> wet_potholes = <LatLng>{};
@@ -109,21 +110,30 @@ Future<void> updateAnomaly({required LatLng location,required Set<String> anomal
 
 Future<void> updateAnnomalyLocations(Map<int, LatLng> path,var result,int startingTime,String videoUrl)async{
   var lb = result['labels'] as Map;
+  Map<LatLng,Anomaly> processedData=Map();
   for(var e in lb.entries){
     if((e.value as List).isNotEmpty){
       LatLng location = path[closestKey(path.keys.toList(), startingTime + (double.parse(e.key as String) * 1000).toInt())]!;
       Anomaly anomaly = Anomaly(location,<String>[ for(var s in e.value ) s.toString() ].toSet(), videoUrl,type: "video");
 
-      print("Updating firestore");
-      print(anomaly.toJson());
-      CollectionReference ref = FirebaseFirestore.instance
-          .collection("road_anomalies2");
-      await ref.doc(location.longitude.toString()+location.latitude.toString()).set(
-          anomaly.toJson()
-      );
-      print("Completed updating firestore");
+      if(processedData.containsKey(location)){
+        processedData[location]!.names.addAll(anomaly.names);
+      }else{
+        processedData[location] = anomaly;
+      }
     }
   }
+
+  print("Updating firestore");
+  for(LatLng l in processedData.keys){
+    print(processedData[l]!.toJson());
+    CollectionReference ref = FirebaseFirestore.instance
+        .collection("road_anomalies2");
+    await ref.doc(l.longitude.toString()+l.latitude.toString()).set(
+        processedData[l]!.toJson()
+    );
+  }
+  print("Completed updating firestore");
 }
 
 //For internal use only
