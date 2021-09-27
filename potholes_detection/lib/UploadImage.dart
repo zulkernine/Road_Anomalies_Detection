@@ -44,6 +44,9 @@ class _UploadImageState extends State<UploadImage> {
   Map<int, LatLng> path = {};
   bool splittingVideo = false;
   int currentlyUploadingVideoIndex = -1;
+  int recordStartTime = 0;
+
+  LatLng? currentLoc;
 
   @override
   void initState() {
@@ -53,19 +56,23 @@ class _UploadImageState extends State<UploadImage> {
     url = widget.url;
     path = widget.path;
     Location().onLocationChanged.listen((LocationData currentLocation) {
+      print(recordingNow);
       if (recordingNow) {
         path[DateTime.now().millisecondsSinceEpoch] =
             LatLng(currentLocation.latitude!, currentLocation.longitude!);
+        // setState(() {
+        //   currentLoc = LatLng(currentLocation.latitude!, currentLocation.longitude!);
+        // });
       }
     });
   }
 
   Future getImage(bool gallery) async {
     ImagePicker picker = ImagePicker();
-    PickedFile? pickedFile;
+    XFile? pickedFile;
     // Let user select photo from gallery
     if (gallery) {
-      pickedFile = await picker.getImage(
+      pickedFile = await picker.pickImage(
           source: ImageSource.gallery,
           maxHeight: 1024,
           maxWidth: 1024,
@@ -74,7 +81,7 @@ class _UploadImageState extends State<UploadImage> {
     // Otherwise open camera to get new photo
     else {
       pickedFile =
-          await picker.getImage(source: ImageSource.camera, imageQuality: 50);
+          await picker.pickImage(source: ImageSource.camera, imageQuality: 50);
     }
 
     setState(() {
@@ -88,13 +95,15 @@ class _UploadImageState extends State<UploadImage> {
 
   Future getVideo(bool gallery) async {
     ImagePicker picker = ImagePicker();
-    PickedFile? pickedFile;
+    XFile? pickedVideoFile;
     setState(() {
       splittingVideo = true;
+      recordingNow = true;
+      recordStartTime = DateTime.now().millisecondsSinceEpoch;
     });
     // Let user select photo from gallery - DON'T, take live camera and location :-(
     if (gallery) {
-      pickedFile = await picker.getVideo(
+      pickedVideoFile = await picker.pickVideo(
         source: ImageSource.gallery,
       );
     }
@@ -106,7 +115,7 @@ class _UploadImageState extends State<UploadImage> {
             LatLng(loc.latitude!, loc.longitude!);
         recordingNow = true;
       });
-      pickedFile = await picker.getVideo(
+      pickedVideoFile = await picker.pickVideo(
         source: ImageSource.camera,
       );
 
@@ -116,12 +125,12 @@ class _UploadImageState extends State<UploadImage> {
         path[DateTime.now().millisecondsSinceEpoch] =
             LatLng(loc.latitude!, loc.longitude!);
       });
-      // print(File(pickedFile!.path).lastModifiedSync());
+      // print(File(pickedVideoFile!.path).lastModifiedSync());
     }
     MediaInfo? mediaInfo;
-    if (pickedFile != null) {
+    if (pickedVideoFile != null) {
       mediaInfo = await VideoCompress.compressVideo(
-        pickedFile.path,
+        pickedVideoFile.path,
         quality: VideoQuality.LowQuality,
         deleteOrigin: false, // It's false by default
         includeAudio: false,
@@ -136,6 +145,7 @@ class _UploadImageState extends State<UploadImage> {
     }
     setState(() {
       splittingVideo = false;
+      recordingNow = false;
     });
 
     print("main() videoes length: ${widget.videoes.length}");
@@ -154,8 +164,9 @@ class _UploadImageState extends State<UploadImage> {
     print("duration: $duration");
     print("format: ${formatTime(duration.toInt())}");
     print(videometadata);
-    int creationTime = DateTime.parse(videometadata["tags"]["creation_time"])
-        .millisecondsSinceEpoch;
+    // int creationTime = DateTime.parse(videometadata["tags"]["creation_time"])
+    //     .millisecondsSinceEpoch;
+    int creationTime = recordStartTime;
 
     for (double i = 0; i < duration - frameLength; i += frameLength) {
       final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
@@ -305,6 +316,7 @@ class _UploadImageState extends State<UploadImage> {
               children: [
                 SizedBox(
                   height: 40,
+                  child: currentLoc!=null ? Text(currentLoc.toString(),style: TextStyle(color: Colors.white),): Container(),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,

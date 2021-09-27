@@ -144,6 +144,7 @@ class _UploadIndividualVideoState extends State<UploadIndividualVideo> {
     }
   }
 
+
   Future<void> _uploadToFirebase(File largeFile) async {
     String filename = 'uploads/${largeFile.path.split('/').last}';
 

@@ -26,6 +26,7 @@ class LiveMap extends StatefulWidget {
 
 class _LiveMapState extends State<LiveMap> {
   // Completer<GoogleMapController> mapController = Completer();
+  GoogleMapController? mapController;
   final Set<Marker> _markers = <Marker>{};
   Stream<QuerySnapshot<Map<String, dynamic>>>? stream;
 
@@ -37,6 +38,7 @@ class _LiveMapState extends State<LiveMap> {
   @override
   void initState() {
     super.initState();
+    mapController = null;
     stream =
         FirebaseFirestore.instance.collection("road_anomalies2").snapshots();
     stream?.listen((event) {
@@ -48,9 +50,15 @@ class _LiveMapState extends State<LiveMap> {
       print("Listening to stream firestore");
       print(anomalies.toJson());
     });
+
+    Location().onLocationChanged.listen((LocationData currentLocation) {
+      // if (mapController != null)
+        // mapController!.animateCamera(CameraUpdate.newCameraPosition(
+        //     CameraPosition(target: LatLng(currentLocation.latitude!, currentLocation.longitude!), zoom: 17.0)));
+    });
   }
 
-  Future setCameraToCurrentLocation()async{
+  Future setCameraToCurrentLocation() async {
     Location loc = Location();
     var l = await loc.getLocation();
     setState(() {
@@ -97,11 +105,13 @@ class _LiveMapState extends State<LiveMap> {
     print("Completed updating firestore");
   }
 
-  void _onMapCreated(GoogleMapController controller) async{
+  void _onMapCreated(GoogleMapController controller) async {
     await setCameraToCurrentLocation();
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        target: _center,
-        zoom: 17.0)));
+    controller.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: _center, zoom: 17.0)));
+    setState(() {
+      mapController = controller;
+    });
   }
 
   void setMarkers() async {
@@ -185,25 +195,28 @@ class _LiveMapState extends State<LiveMap> {
                         Row(
                           children: [
                             Expanded(
-                              flex:2,
-                              child: ElevatedButton(
-                                child: Icon(Icons.download_outlined),
-                                onPressed: () async {
-                                  await canLaunch(marker_positions[l]!.sourceUrl)
-                                      ? await launch(
-                                          marker_positions[l]!.sourceUrl)
-                                      : print("Can't launch url");
-                                },
-                            )),
+                                flex: 2,
+                                child: ElevatedButton(
+                                  child: Icon(Icons.download_outlined),
+                                  onPressed: () async {
+                                    await canLaunch(
+                                            marker_positions[l]!.sourceUrl)
+                                        ? await launch(
+                                            marker_positions[l]!.sourceUrl)
+                                        : print("Can't launch url");
+                                  },
+                                )),
                             Expanded(
-                              flex:8,
+                              flex: 8,
                               child: Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Text(
                                   "Download the source " +
                                       marker_positions[l]!.sourceType +
                                       "\n or copy the URL",
-                                  style: TextStyle(fontSize: 15,),
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
@@ -513,7 +526,7 @@ Future<Uint8List> getBytesFromCanvas(int height, Set<String> anomalies) async {
           imaged, new Offset((i * height + 8).toDouble(), 8), new Paint());
       i++;
     }
-    if (anomaly == "Manholes") {
+    if (anomaly == "Manhole") {
       final ByteData datai = await rootBundle.load("assets/manhole.png");
       var imaged = await loadImage(new Uint8List.view(datai.buffer), height);
       canvas.drawImage(

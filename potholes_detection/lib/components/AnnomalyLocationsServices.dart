@@ -110,6 +110,7 @@ Future<void> updateAnomaly({required LatLng location,required Set<String> anomal
 
 Future<void> updateAnnomalyLocations(Map<int, LatLng> path,var result,int startingTime,String videoUrl)async{
   var lb = result['labels'] as Map;
+
   Map<LatLng,Anomaly> processedData=Map();
   for(var e in lb.entries){
     if((e.value as List).isNotEmpty){
